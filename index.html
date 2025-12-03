@@ -4,1418 +4,979 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MY APP LUIS</title>
-    <!-- Tailwind CSS (Aseguramos un solo archivo sin output.css) -->
+
+    <!-- Tailwind CSS (versión local) -->
     <link rel="stylesheet" href="./assets/css/tailwind.min.css">
-     <!-- Manifest para PWA -->
+
+    <!-- Manifest PWA -->
     <link rel="manifest" href="./manifest.json">
-    <!-- dexie.min.js (IndexedDB) -->
+
+    <!-- Dexie (solo una vez, duplicado corregido) -->
     <script src="./assets/js/dexie.min.js"></script>
-    <!-- FullCalendar (Calendario) -->
+
+    <!-- FullCalendar -->
     <script src="./assets/js/index.global.min.js"></script>
+
+    <!-- Responsive (tu archivo) -->
     <script src="./assets/js/responsive.js"></script>
+
     <style>
-        /* Estilos críticos para la aplicación */
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .tab-button.active { border-color: #4f46e5; color: #4f46e5; background-color: #f5f3ff; }
-        .kanban-column { min-width: 300px; max-height: 75vh; overflow-y: auto; scrollbar-width: none; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f3f4f6; 
+        }
+
+        .tab-button.active { 
+            border-color: #4f46e5; 
+            color: #4f46e5; 
+            background-color: #f5f3ff; 
+        }
+
+        .kanban-column { 
+            min-width: 300px; 
+            max-height: 75vh; 
+            overflow-y: auto; 
+            scrollbar-width: none; 
+        }
         .kanban-column::-webkit-scrollbar { display: none; }
-        .drag-hover { border: 2px dashed #4f46e5; background-color: #eef2ff; }
+
+        .drag-hover { 
+            border: 2px dashed #4f46e5; 
+            background-color: #eef2ff; 
+        }
+
         .kanban-card { cursor: grab; }
         .kanban-card:active { cursor: grabbing; }
-        /* Estilos para edición inline */
-        .editable-cell { cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: background-color 0.15s; }
+
+        .editable-cell { 
+            cursor: pointer; 
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            transition: background-color 0.15s; 
+        }
         .editable-cell:hover { background-color: #f1f5f9; }
-        .editable-cell input, .editable-cell select {
+
+        .editable-cell input, 
+        .editable-cell select {
             border: none;
             padding: 0;
             width: 100%;
             background: transparent;
             font-size: inherit;
-            color: inherit;
-            /* Asegura que el color del texto sea visible al editar */
-            color: #1f2937; 
+            color: #1f2937;
         }
     </style>
 </head>
+
 <body class="min-h-screen flex">
-       <!-- Botón de menú para móviles -->
+
+    <!-- Botón menú móvil -->
     <button id="menu-toggle" class="md:hidden fixed top-4 left-4 z-50 p-2 bg-indigo-600 text-white rounded-lg">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M4 6h16M4 12h16M4 18h16"/>
         </svg>
     </button>
-    <!-- 1. Barra Lateral de Navegación -->
-    <aside id="sidebar" class="w-64 bg-white shadow-xl flex-shrink-0 border-r border-gray-200 p-4 space-y-4
-        transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out
-        fixed md:static z-40 h-screen md:h-auto">
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" 
+        class="w-64 bg-white shadow-xl flex-shrink-0 border-r border-gray-200 p-4 space-y-4
+               transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out
+               fixed md:static z-40 h-screen md:h-auto">
+
         <h1 class="text-2xl font-bold text-indigo-700">MY APP LUIS</h1>
-        <!-- Perfil de Usuario -->
-        <div id="user-profile-summary" class="bg-gray-50 p-3 rounded-lg flex items-center space-x-3 cursor-pointer hover:bg-gray-100 transition-colors" onclick="showUserModal()">
+
+        <!-- Perfil Usuario -->
+        <div id="user-profile-summary"
+             class="bg-gray-50 p-3 rounded-lg flex items-center space-x-3 cursor-pointer hover:bg-gray-100"
+             onclick="showUserModal()">
+
             <span id="user-avatar" class="text-3xl">🧑‍💻</span>
+
             <div>
                 <p id="user-name-display" class="font-semibold text-gray-800">Cargando...</p>
                 <p id="user-branch-display" class="text-xs text-gray-500">Configurar perfil</p>
             </div>
+
         </div>
-        <!-- Menú Principal -->
+
+        <!-- Menú principal -->
         <div class="space-y-1">
-            <button onclick="setActiveWorkspace(1)" class="w-full text-left p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-800 font-medium">
+            <button onclick="setActiveWorkspace(1)" 
+                class="w-full text-left p-2 rounded-lg hover:bg-gray-100 text-gray-800 font-medium">
                 <span class="mr-2">🏠</span> Dashboard
             </button>
-            <button onclick="showModal('config-modal')" class="w-full text-left p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-800 font-medium">
+
+            <button onclick="showModal('config-modal')"
+                class="w-full text-left p-2 rounded-lg hover:bg-gray-100 text-gray-800 font-medium">
                 <span class="mr-2">⚙️</span> Sincronización
             </button>
         </div>
+
         <hr class="border-gray-200">
-        <!-- Lista de Workspaces -->
+
         <h2 class="text-xs font-semibold uppercase text-gray-500 tracking-wider">Bases de Datos</h2>
         <div id="workspace-list" class="space-y-1"></div>
 
-        <button onclick="addWorkspace()" class="w-full text-center py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 transition-colors text-indigo-600 text-sm font-medium">
+        <button onclick="addWorkspace()"
+            class="w-full text-center py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-sm font-medium">
             + Nuevo Espacio
         </button>
+
     </aside>
-    <!-- 2. Contenido Principal -->
+
+    <!-- MAIN CONTENT -->
     <main class="flex-grow overflow-auto p-4 md:p-8 md:ml-0 transition-all duration-200">
         <header class="mb-6">
             <div class="flex justify-between items-center">
-                <h2 id="current-workspace-title" class="text-4xl font-extrabold text-gray-900">Cargando...</h2>
+
+                <h2 id="current-workspace-title" 
+                    class="text-4xl font-extrabold text-gray-900">Cargando...</h2>
+
                 <div class="flex space-x-3">
-                    <button id="btn-configure-ws" onclick="showWorkspaceConfigModal()" class="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg shadow-md hover:bg-gray-300 transition-colors hidden">
+                    <button id="btn-configure-ws"
+                        onclick="showWorkspaceConfigModal()"
+                        class="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg shadow-md hover:bg-gray-300 transition-colors hidden">
                         Configurar Propiedades
                     </button>
-                    <button id="btn-sync" onclick="exportToGist()" class="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg shadow-md hover:bg-gray-300 transition-colors flex items-center space-x-2">
+
+                    <button id="btn-sync" onclick="exportToGist()" 
+                        class="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg shadow-md hover:bg-gray-300 transition-colors flex items-center space-x-2">
                         <span class="w-2 h-2 rounded-full bg-red-500" id="sync-indicator"></span>
                         <span id="sync-text">Desconectado Gist</span>
                     </button>
-                    <button id="btn-new-item" onclick="showItemModal()" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-colors">
+
+                    <button id="btn-new-item" onclick="showItemModal()"
+                        class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-colors">
                         + Nuevo Elemento
                     </button>
                 </div>
+
             </div>
-            <!-- Vistas (Tabs) -->
-            <div id="view-tabs" class="mt-4 flex space-x-2 p-1 bg-white rounded-xl shadow-inner max-w-fit"></div>
+
+            <!-- Tabs -->
+            <div id="view-tabs" 
+                class="mt-4 flex space-x-2 p-1 bg-white rounded-xl shadow-inner max-w-fit"></div>
         </header>
-        <!-- Contenedor Principal -->
-        <section id="content-view" class="bg-white p-6 rounded-xl shadow-lg min-h-[70vh]">
-            <p class="text-center text-gray-500">Cargando datos. Asegúrate de tener una configuración inicial.</p>
+
+        <section id="content-view" 
+            class="bg-white p-6 rounded-xl shadow-lg min-h-[70vh]">
+            <p class="text-center text-gray-500">Cargando datos...</p>
         </section>
-        <!-- Mensajes flotantes -->
-        <div id="app-message" class="fixed bottom-4 right-4 p-3 rounded-lg shadow-xl text-sm hidden"></div>
+
+        <div id="app-message" 
+             class="fixed bottom-4 right-4 p-3 rounded-lg shadow-xl text-sm hidden"></div>
     </main>
-    <!-- 3. Modal para Crear/Editar Elementos -->
-    <div id="item-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center p-4 z-50">
+
+    <!-- MODAL CREAR / EDITAR ELEMENTO -->
+    <div id="item-modal"
+         class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center p-4 z-50">
+
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl p-6 overflow-y-auto max-h-[90vh]">
-            <h3 id="item-modal-title" class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Nuevo Elemento</h3>
+
+            <h3 id="item-modal-title"
+                class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Nuevo Elemento</h3>
+
             <form id="record-form" class="space-y-4">
+
                 <input type="hidden" id="record-id">
                 <input type="hidden" id="record-workspaceId">
-                <div id="dynamic-properties-container" class="grid grid-cols-1 md:grid-cols-3 gap-4 border p-4 rounded-lg bg-gray-50"></div>
+
+                <div id="dynamic-properties-container" 
+                    class="grid grid-cols-1 md:grid-cols-3 gap-4 border p-4 rounded-lg bg-gray-50"></div>
+
                 <div>
                     <span class="text-gray-700 font-medium block mb-2">Bloque de Contenido</span>
-                    <textarea id="record-content-block" rows="8" placeholder="Contenido detallado..." class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-indigo-500 focus:ring-indigo-500 text-sm"></textarea>
+                    <textarea id="record-content-block" rows="8"
+                        placeholder="Contenido detallado..."
+                        class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-indigo-500 focus:ring-indigo-500 text-sm"></textarea>
                 </div>
+
                 <div class="mt-6 flex justify-end space-x-3">
-                    <button type="button" onclick="deleteRecord(document.getElementById('record-id').value)" id="btn-delete-record" class="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition-colors hidden">Eliminar</button>
-                    <button type="button" onclick="closeModal('item-modal')" class="px-4 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400 transition-colors">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-colors">Guardar Elemento</button>
+                    <button type="button" 
+                        onclick="deleteRecord(document.getElementById('record-id').value)"
+                        id="btn-delete-record"
+                        class="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 hidden">
+                        Eliminar
+                    </button>
+
+                    <button type="button" onclick="closeModal('item-modal')" 
+                        class="px-4 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400">
+                        Cancelar
+                    </button>
+
+                    <button type="submit"
+                        class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700">
+                        Guardar Elemento
+                    </button>
                 </div>
+
             </form>
         </div>
     </div>
-    <!-- 4. Modal de Configuración de Workspace -->
-    <div id="workspace-config-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center p-4 z-50">
+<!-- MODAL CONFIG DE WORKSPACE -->
+    <div id="workspace-config-modal"
+         class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center p-4 z-50">
+
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl p-6 overflow-y-auto max-h-[90vh]">
-            <h3 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Configurar Propiedades del Espacio</h3>
+
+            <h3 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">
+                Configurar Propiedades del Espacio
+            </h3>
+
             <form id="workspace-config-form" class="space-y-4">
                 <input type="hidden" id="config-workspace-id">
+
                 <div class="space-y-2">
-                    <label for="config-workspace-name" class="block text-sm font-medium text-gray-700">Nombre del Espacio</label>
-                    <input type="text" id="config-workspace-name" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-indigo-500 focus:ring-indigo-500">
+                    <label for="config-workspace-name"
+                           class="block text-sm font-medium text-gray-700">
+                        Nombre del Espacio
+                    </label>
+
+                    <input type="text" id="config-workspace-name"
+                           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 
+                                  focus:border-indigo-500 focus:ring-indigo-500">
                 </div>
+
                 <div class="mt-4">
-                    <h4 class="text-lg font-semibold text-gray-800 mb-3">Propiedades (Columnas)</h4>
-                    <div id="properties-list" class="space-y-3 p-3 border rounded-lg bg-gray-50">
-                        <!-- Las propiedades se inyectarán aquí -->
-                    </div>
-                    <button type="button" onclick="addPropertyField()" class="mt-3 px-4 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors text-sm">+ Agregar Propiedad</button>
+                    <h4 class="text-lg font-semibold text-gray-800 mb-3">
+                        Propiedades (Columnas)
+                    </h4>
+
+                    <div id="properties-list"
+                         class="space-y-3 p-3 border rounded-lg bg-gray-50"></div>
+
+                    <button type="button" onclick="addPropertyField()"
+                        class="mt-3 px-4 py-2 bg-green-500 text-white font-semibold rounded-lg 
+                               hover:bg-green-600 text-sm">
+                        + Agregar Propiedad
+                    </button>
                 </div>
+
                 <div class="mt-6 flex justify-end space-x-3">
-                    <button type="button" onclick="closeModal('workspace-config-modal')" class="px-4 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400 transition-colors">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-colors">Guardar Configuración</button>
+                    <button type="button" onclick="closeModal('workspace-config-modal')"
+                        class="px-4 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400">
+                        Cancelar
+                    </button>
+
+                    <button type="submit"
+                        class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md 
+                               hover:bg-indigo-700">
+                        Guardar Configuración
+                    </button>
                 </div>
             </form>
-        </div>
-    </div>
-    <!-- 5. Modal de Perfil de Usuario -->
-    <div id="user-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center p-4 z-50">
-         <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
-            <h3 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Mi Perfil</h3>
-            <div class="space-y-3 text-sm">
-                <p class="text-gray-600">El ID de usuario es local para Dexie y no es relevante para Gist, pero lo conservamos para mantener la estructura de datos local.</p>
-                <div class="bg-indigo-50 p-3 rounded-lg break-words">
-                    <strong class="text-indigo-700">ID de Usuario Local:</strong> <span id="auth-user-id">Generado Localmente</span>
-                </div>
-                <div class="space-y-2 pt-2">
-                    <label for="user-input-name" class="block text-sm font-medium text-gray-700">Nombre Visible</label>
-                    <input type="text" id="user-input-name" placeholder="Tu Nombre" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
-                    <label for="user-input-branch" class="block text-sm font-medium text-gray-700">Sucursal/Área</label>
-                    <input type="text" id="user-input-branch" placeholder="Recursos Humanos" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
-                </div>
-            </div>
-            <div class="mt-6 flex justify-end space-x-3">
-                <button type="button" onclick="closeModal('user-modal')" class="px-4 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400 transition-colors">Cerrar</button>
-                <button type="button" onclick="saveUserProfile()" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-colors">Guardar Perfil</button>
-            </div>
+
         </div>
     </div>
 
-    <!-- 6. Modal de Sincronización (Gist) -->
-    <div id="config-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center p-4 z-50">
+    <!-- MODAL PERFIL USUARIO -->
+    <div id="user-modal"
+         class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center p-4 z-50">
+
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
-            <h3 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Configuración y Sincronización Gist</h3>
-            <div class="space-y-4">
-                <p class="text-gray-600">Usa GitHub Gist para exportar/importar tu base de datos completa. Requiere un Token de Acceso Personal de GitHub (Permiso: Gist).</p>
-                <div class="space-y-2">
-                    <label for="github-token" class="block text-sm font-medium text-gray-700">Token Personal de GitHub</label>
-                    <input type="password" id="github-token" placeholder="ghp_..." class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-indigo-500 focus:ring-indigo-500">
+
+            <h3 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Mi Perfil</h3>
+
+            <div class="space-y-3 text-sm">
+                <p class="text-gray-600">
+                    El ID de usuario es local para Dexie. No es relevante para Gist,
+                    pero se conserva para mantener la estructura local.
+                </p>
+
+                <div class="bg-indigo-50 p-3 rounded-lg break-words">
+                    <strong class="text-indigo-700">ID de Usuario Local:</strong>
+                    <span id="auth-user-id">Generado Localmente</span>
                 </div>
-                <div class="space-y-2">
-                    <label for="gist-id" class="block text-sm font-medium text-gray-700">ID del Gist de Sincronización</label>
-                    <input type="text" id="gist-id" placeholder="ID del Gist existente (para importar/actualizar)" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-indigo-500 focus:ring-indigo-500">
+
+                <div class="space-y-2 pt-2">
+
+                    <label for="user-input-name"
+                           class="block text-sm font-medium text-gray-700">
+                        Nombre Visible
+                    </label>
+
+                    <input type="text" id="user-input-name" placeholder="Tu Nombre"
+                           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2
+                                  focus:border-indigo-500 focus:ring-indigo-500">
+
+                    <label for="user-input-branch"
+                           class="block text-sm font-medium text-gray-700">
+                        Sucursal/Área
+                    </label>
+
+                    <input type="text" id="user-input-branch" placeholder="Recursos Humanos"
+                           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2
+                                  focus:border-indigo-500 focus:ring-indigo-500">
+
                 </div>
             </div>
-            <div class="mt-6 flex justify-between space-x-3">
-                <button type="button" onclick="saveSyncConfig()" class="px-4 py-2 bg-gray-400 text-white font-semibold rounded-lg shadow-md hover:bg-gray-500 transition-colors">Guardar Configuración</button>
-                <button type="button" onclick="importFromGist()" class="px-4 py-2 bg-indigo-500 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-600 transition-colors">Importar de Gist</button>
-                <button type="button" onclick="closeModal('config-modal')" class="px-4 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400 transition-colors">Cerrar</button>
+
+            <div class="mt-6 flex justify-end space-x-3">
+                
+                <button type="button" onclick="closeModal('user-modal')"
+                        class="px-4 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400">
+                    Cerrar
+                </button>
+
+                <button type="button" onclick="saveUserProfile()"
+                        class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md 
+                               hover:bg-indigo-700">
+                    Guardar Perfil
+                </button>
+
             </div>
+
         </div>
     </div>
-      
-    <!-- script base de datos dexie.min.js-->
-    <script src="./assets/js/dexie.min.js"></script>
-    <!-- Scripts modulares (TODO EL CÓDIGO JS CONSOLIDADO AQUÍ) -->
+
+    <!-- MODAL CONFIGURACIÓN / SINCRONIZACIÓN GIST -->
+    <div id="config-modal"
+        class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center p-4 z-50">
+
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
+
+            <h3 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">
+                Configuración y Sincronización Gist
+            </h3>
+
+            <div class="space-y-4">
+
+                <p class="text-gray-600">
+                    Usa GitHub Gist para exportar/importar la base de datos completa.<br>
+                    Necesitas un Token Personal (permiso Gist).
+                </p>
+
+                <div class="space-y-2">
+                    <label for="github-token"
+                           class="block text-sm font-medium text-gray-700">
+                        Token Personal de GitHub
+                    </label>
+
+                    <input type="password" id="github-token" placeholder="ghp_..."
+                           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3  
+                                  focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+
+                <div class="space-y-2">
+                    <label for="gist-id"
+                           class="block text-sm font-medium text-gray-700">
+                        ID del Gist
+                    </label>
+
+                    <input type="text" id="gist-id" placeholder="ID del Gist"
+                           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 
+                                  focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+
+            </div>
+
+            <div class="mt-6 flex justify-between space-x-3">
+
+                <button type="button" onclick="saveSyncConfig()"
+                        class="px-4 py-2 bg-gray-400 text-white font-semibold rounded-lg shadow-md hover:bg-gray-500">
+                    Guardar Configuración
+                </button>
+
+                <button type="button" onclick="importFromGist()"
+                        class="px-4 py-2 bg-indigo-500 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-600">
+                    Importar de Gist
+                </button>
+
+                <button type="button" onclick="closeModal('config-modal')"
+                        class="px-4 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400">
+                    Cerrar
+                </button>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Inicia código JS completo -->
     <script type="module">
-        // Generar un ID de usuario local para mantener la estructura de datos
-        const userId = 'local-user-' + (localStorage.getItem('localUserId') || crypto.randomUUID());
+
+        /* ========================
+           CONFIGURACIÓN GLOBAL
+           ======================== */
+
+        const userId = 'local-user-' + 
+            (localStorage.getItem('localUserId') || crypto.randomUUID());
+        
         localStorage.setItem('localUserId', userId);
 
-        // =========================================================================
-        // SECCIÓN 1: CONFIGURACIÓN GLOBAL Y DEXTIE (Offline First)
-        // =========================================================================
-
-        // Estado Global de la Aplicación
         const state = {
             currentWorkspaceId: null,
             workspaces: [],
             currentRecords: [],
-            currentView: 'panel', // 'panel', 'kanban', 'calendar'
-            userProfile: { name: 'Usuario Local', branch: 'Configurar', avatar: '🧑‍💻', id: userId },
+            currentView: 'panel',
+            userProfile: { 
+                name: 'Usuario Local', 
+                branch: 'Configurar', 
+                avatar: '🧑‍💻', 
+                id: userId 
+            },
             gistConfig: { token: '', gistId: '' }
         };
 
-        // Configuración de la Base de Datos IndexedDB (Dexie)
+        /* ========================
+           BASE DE DATOS DEXIE
+           ======================== */
+
         const dbLocal = new Dexie('NotionHRDB');
+        
         dbLocal.version(1).stores({
             workspaces: '++id, name',
             records: '++id, workspaceId, title, properties',
-            config: '&key' // Clave única para configuraciones (e.g., userProfile, gistConfig)
+            config: '&key'
         });
+/* ========================
+            INICIALIZACIÓN
+        ======================== */
 
-        // --- Utilidades Dexie para Configuración ---
-
-        /** Obtiene un valor de la tabla de configuración. */
-        async function getConfig(key, defaultValue = null) {
-            try {
-                const config = await dbLocal.config.get(key);
-                return config ? config.value : defaultValue;
-            } catch (e) {
-                console.error(`Error al obtener config ${key}:`, e);
-                return defaultValue;
-            }
-        }
-
-        /** Establece un valor en la tabla de configuración. */
-        async function setConfig(key, value) {
-            try {
-                await dbLocal.config.put({ key: key, value: value });
-            } catch (e) {
-                console.error(`Error al guardar config ${key}:`, e);
-            }
-        }
-
-        /** Inicializa la aplicación cargando la configuración y los datos. */
         async function initApp() {
-            // Cargar Perfil y Configuración Gist
-            state.userProfile = await getConfig('userProfile', state.userProfile);
-            state.gistConfig = await getConfig('gistConfig', state.gistConfig);
+            await loadConfig();
+            await loadUserProfile();
+            await loadWorkspaces();
 
-            updateUserProfileUI();
-            updateSyncIndicator();
-
-            // Cargar Workspaces desde IndexedDB o crear el predeterminado
-            let wsList = await dbLocal.workspaces.toArray();
-
-            if (wsList.length === 0) {
-                const defaultWs = {
-                    name: '',
-                    properties: [
-                        { id: 'title', name: 'Título', type: 'text', required: true },
-                        { id: 'status', name: 'Estado', type: 'select', options: ['Pendiente', 'En Progreso', 'Completado'], kanban: true },
-                        { id: 'dueDate', name: 'Fecha Límite', type: 'date' },
-                        { id: 'priority', name: 'Prioridad', type: 'select', options: ['Alta', 'Media', 'Baja'] }
-                    ],
-                    views: ['panel', 'kanban', 'calendar']
-                };
-                const newId = await dbLocal.workspaces.add(defaultWs);
-                defaultWs.id = newId;
-                wsList.push(defaultWs);
-            }
-
-            state.workspaces = wsList;
-            renderWorkspaceList();
-
-            // Establecer el workspace activo por defecto
-            if (state.currentWorkspaceId === null && wsList.length > 0) {
-                setActiveWorkspace(wsList[0].id);
+            if (state.workspaces.length > 0) {
+                state.currentWorkspaceId = state.workspaces[0].id;
+                setActiveWorkspace(state.currentWorkspaceId);
+            } else {
+                addWorkspace();
             }
         }
 
-        // =========================================================================
-        // SECCIÓN 2: UTILIDADES (MODALES, TOASTS)
-        // =========================================================================
+        /* ========================
+           CARGAR CONFIGURACIONES
+           ======================== */
 
-        /** Muestra un modal por su ID. */
-        function showModal(id) {
-            const modal = document.getElementById(id);
-            if (modal) {
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-            }
+        async function loadConfig() {
+            const config = await dbLocal.config.get({ key: 'gistConfig' });
+            if (config) state.gistConfig = config.value;
         }
 
-        /** Oculta un modal por su ID. */
-        function closeModal(id) {
-            const modal = document.getElementById(id);
-            if (modal) {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }
-        }
-
-        /** Muestra un mensaje flotante (toast) */
-        function showToast(message, type = 'info') {
-            const toast = document.getElementById('app-message');
-            if (!toast) return;
-
-            const baseClasses = 'fixed bottom-4 right-4 p-3 rounded-lg shadow-xl text-sm';
-            let colorClasses;
-
-            switch (type) {
-                case 'success':
-                    colorClasses = 'bg-green-500 text-white';
-                    break;
-                case 'error':
-                    colorClasses = 'bg-red-500 text-white';
-                    break;
-                case 'info':
-                default:
-                    colorClasses = 'bg-indigo-500 text-white';
-                    break;
-            }
-
-            toast.className = `${baseClasses} ${colorClasses}`;
-            toast.textContent = message;
-            toast.classList.remove('hidden');
-
-            setTimeout(() => {
-                toast.classList.add('hidden');
-            }, 3000);
-        }
-
-        // =========================================================================
-        // SECCIÓN 3: MANEJO DE PERFIL Y CONFIGURACIÓN LOCAL
-        // =========================================================================
-
-        /** Guarda el perfil del usuario en Dexie Config. */
-        async function saveUserProfile() {
-            const nameInput = document.getElementById('user-input-name');
-            const branchInput = document.getElementById('user-input-branch');
-
-            state.userProfile.name = nameInput.value || 'Usuario';
-            state.userProfile.branch = branchInput.value || 'Configurar';
-
-            await setConfig('userProfile', state.userProfile);
-            showToast('Perfil guardado localmente.', 'success');
-            updateUserProfileUI();
-            closeModal('user-modal');
-        }
-
-        /** Actualiza la interfaz de usuario con la información del perfil. */
-        function updateUserProfileUI() {
-            document.getElementById('user-name-display').textContent = state.userProfile.name;
-            document.getElementById('user-branch-display').textContent = state.userProfile.branch;
-            document.getElementById('auth-user-id').textContent = userId;
-
-            const nameInput = document.getElementById('user-input-name');
-            const branchInput = document.getElementById('user-input-branch');
-            if (nameInput) nameInput.value = state.userProfile.name;
-            if (branchInput) branchInput.value = state.userProfile.branch;
-        }
-
-        /** Muestra el modal de perfil de usuario. */
-        function showUserModal() {
-            updateUserProfileUI();
-            showModal('user-modal');
-        }
-
-        /** Guarda el token y Gist ID en Dexie Config. */
         async function saveSyncConfig() {
             const token = document.getElementById('github-token').value.trim();
             const gistId = document.getElementById('gist-id').value.trim();
 
-            state.gistConfig.token = token;
-            state.gistConfig.gistId = gistId;
+            state.gistConfig = { token, gistId };
 
-            await setConfig('gistConfig', state.gistConfig);
-            updateSyncIndicator();
-            showToast('Configuración de sincronización guardada.', 'info');
-            closeModal('config-modal');
-        }
-
-        /** Actualiza los campos del modal de sincronización y el indicador. */
-        function updateSyncIndicator() {
-            const tokenInput = document.getElementById('github-token');
-            const gistInput = document.getElementById('gist-id');
-            const indicator = document.getElementById('sync-indicator');
-            const syncText = document.getElementById('sync-text');
-
-            if (tokenInput && gistInput) {
-                tokenInput.value = state.gistConfig.token;
-                gistInput.value = state.gistConfig.gistId;
-            }
-
-            if (state.gistConfig.token && state.gistConfig.gistId) {
-                indicator.className = 'w-2 h-2 rounded-full bg-green-500';
-                syncText.textContent = 'Gist Configurado';
-            } else if (state.gistConfig.token) {
-                indicator.className = 'w-2 h-2 rounded-full bg-yellow-500';
-                syncText.textContent = 'Token OK (Falta Gist ID)';
-            } else {
-                indicator.className = 'w-2 h-2 rounded-full bg-red-500';
-                syncText.textContent = 'Desconectado Gist';
-            }
-        }
-
-        // =========================================================================
-        // SECCIÓN 4: MANEJO DE DATOS Y WORKSPACES (Dexie)
-        // =========================================================================
-
-        /** Carga los registros del workspace activo y renderiza la vista. */
-        async function loadRecordsAndRender() {
-            if (!state.currentWorkspaceId) return;
-
-            // Cargar de IndexedDB (Dexie)
-            state.currentRecords = await dbLocal.records
-                .where('workspaceId').equals(state.currentWorkspaceId)
-                .toArray();
-
-            renderCurrentView();
-        }
-
-        /** Cambia el workspace activo. */
-        async function setActiveWorkspace(id) {
-            state.currentWorkspaceId = id;
-            const ws = state.workspaces.find(w => w.id === id);
-
-            if (!ws) {
-                console.error("Workspace no encontrado:", id);
-                return;
-            }
-
-            // 1. Actualizar título y botón de configuración
-            document.getElementById('current-workspace-title').textContent = ws.name;
-            document.getElementById('btn-configure-ws').classList.remove('hidden');
-
-            // 2. Resaltar en el sidebar
-            document.querySelectorAll('#workspace-list button').forEach(btn => {
-                btn.classList.remove('bg-indigo-100', 'text-indigo-800');
-                if (parseInt(btn.dataset.id) === id) {
-                    btn.classList.add('bg-indigo-100', 'text-indigo-800');
-                }
+            await dbLocal.config.put({
+                key: 'gistConfig',
+                value: state.gistConfig
             });
 
-            // 3. Renderizar pestañas de vistas
-            renderViewTabs(ws.views);
-
-            // 4. Cargar y renderizar los registros
-            await loadRecordsAndRender();
+            showMessage("Configuración guardada correctamente", "success");
         }
 
-        /** Renderiza la lista de workspaces en la barra lateral. */
-        function renderWorkspaceList() {
-            const listContainer = document.getElementById('workspace-list');
-            listContainer.innerHTML = '';
-            state.workspaces.forEach(ws => {
-                const btn = document.createElement('button');
-                btn.className = 'w-full text-left p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-800 font-medium';
-                btn.setAttribute('onclick', `setActiveWorkspace(${ws.id})`);
-                btn.dataset.id = ws.id;
-                btn.innerHTML = `<span class="mr-2">📚</span> ${ws.name}`;
-                listContainer.appendChild(btn);
+        /* ========================
+           PERFIL DE USUARIO
+           ======================== */
+
+        async function loadUserProfile() {
+            const saved = await dbLocal.config.get({ key: 'userProfile' });
+            if (saved) state.userProfile = saved.value;
+
+            document.getElementById('user-name-display').textContent = state.userProfile.name;
+            document.getElementById('user-branch-display').textContent = state.userProfile.branch;
+            document.getElementById('user-avatar').textContent = state.userProfile.avatar;
+            document.getElementById('auth-user-id').textContent = state.userProfile.id;
+        }
+
+        async function saveUserProfile() {
+            const name = document.getElementById('user-input-name').value.trim();
+            const branch = document.getElementById('user-input-branch').value.trim();
+
+            state.userProfile.name = name || state.userProfile.name;
+            state.userProfile.branch = branch || state.userProfile.branch;
+
+            await dbLocal.config.put({
+                key: 'userProfile',
+                value: state.userProfile
             });
+
+            loadUserProfile();
+            closeModal('user-modal');
+            showMessage("Perfil actualizado", "success");
         }
 
-        /** Agrega un nuevo workspace. */
+        function showUserModal() {
+            document.getElementById('user-input-name').value = state.userProfile.name;
+            document.getElementById('user-input-branch').value = state.userProfile.branch;
+            openModal('user-modal');
+        }
+
+        /* ========================
+           WORKSPACES
+        ======================== */
+
+        async function loadWorkspaces() {
+            state.workspaces = await dbLocal.workspaces.toArray();
+            renderWorkspaceList();
+        }
+
         async function addWorkspace() {
             const newWs = {
-                name: `Nuevo Espacio ${state.workspaces.length + 1}`,
+                name: "Nuevo Espacio",
                 properties: [
-                    { id: 'title', name: 'Título', type: 'text', required: true },
-                    { id: 'status', name: 'Estado', type: 'select', options: ['To Do', 'Doing', 'Done'], kanban: true },
-                    { id: 'dueDate', name: 'Fecha', type: 'date' },
-                ],
-                views: ['panel', 'kanban']
-            };
-            const newId = await dbLocal.workspaces.add(newWs);
-            newWs.id = newId;
-            state.workspaces.push(newWs);
-            renderWorkspaceList();
-            setActiveWorkspace(newId);
-        }
-
-        /** Renderiza el formulario de configuración del workspace activo. */
-        function showWorkspaceConfigModal() {
-            const ws = state.workspaces.find(w => w.id === state.currentWorkspaceId);
-            if (!ws) return;
-
-            document.getElementById('config-workspace-id').value = ws.id;
-            document.getElementById('config-workspace-name').value = ws.name;
-            const propertiesContainer = document.getElementById('properties-list');
-            propertiesContainer.innerHTML = '';
-
-            // Renderizar Propiedades
-            ws.properties.forEach(prop => {
-                propertiesContainer.insertAdjacentHTML('beforeend', renderPropertyField(prop));
-            });
-
-            // Listener para guardar configuración
-            document.getElementById('workspace-config-form').onsubmit = handleSaveWorkspaceConfig;
-
-            showModal('workspace-config-modal');
-        }
-
-        /** Genera el HTML para un campo de propiedad en el modal de configuración. */
-        function renderPropertyField(prop) {
-            const isDefault = ['title'].includes(prop.id);
-            const optionsInput = prop.type === 'select' ?
-                `<input type="text" value="${prop.options ? prop.options.join(', ') : ''}" placeholder="Opciones separadas por coma" class="property-options mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 text-sm">` : '';
-
-            return `
-                <div class="p-3 border rounded-lg bg-white shadow-sm property-item flex items-center space-x-2" data-id="${prop.id}">
-                    <input type="text" value="${prop.name}" placeholder="Nombre de la Propiedad" class="property-name font-medium w-1/4 rounded-lg border-gray-300 p-2 text-sm">
-                    <select onchange="updatePropertyOptionsInput(this)" class="property-type w-1/4 rounded-lg border-gray-300 p-2 text-sm">
-                        <option value="text" ${prop.type === 'text' ? 'selected' : ''}>Texto</option>
-                        <option value="select" ${prop.type === 'select' ? 'selected' : ''}>Selección</option>
-                        <option value="date" ${prop.type === 'date' ? 'selected' : ''}>Fecha</option>
-                    </select>
-                    <label class="flex items-center space-x-2 w-1/4 text-sm">
-                        <input type="checkbox" class="property-kanban" ${prop.kanban ? 'checked' : ''} ${prop.type !== 'select' ? 'disabled' : ''}>
-                        <span>Usar en Kanban</span>
-                    </label>
-                    <div class="options-container w-1/4">
-                        ${optionsInput}
-                    </div>
-                    <button type="button" onclick="removePropertyField(this)" class="text-red-500 hover:text-red-700 p-2 rounded-full transition-colors ${isDefault ? 'opacity-50 cursor-not-allowed' : ''}" ${isDefault ? 'disabled' : ''}>
-                        🗑️
-                    </button>
-                </div>
-            `;
-        }
-        
-        /** Actualiza dinámicamente el campo de opciones al cambiar el tipo de propiedad. */
-        window.updatePropertyOptionsInput = function(selectElement) {
-            const item = selectElement.closest('.property-item');
-            const optionsDiv = item.querySelector('.options-container');
-            const kanbanCheckbox = item.querySelector('.property-kanban');
-            
-            if (selectElement.value === 'select') {
-                if (!optionsDiv.querySelector('.property-options')) {
-                    optionsDiv.innerHTML = `<input type="text" placeholder="Opciones separadas por coma" class="property-options mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 text-sm">`;
-                }
-                kanbanCheckbox.disabled = false;
-            } else {
-                optionsDiv.innerHTML = '';
-                kanbanCheckbox.checked = false;
-                kanbanCheckbox.disabled = true;
-            }
-        }
-
-        /** Agrega un nuevo campo de propiedad al modal de configuración. */
-        function addPropertyField() {
-            const propertiesContainer = document.getElementById('properties-list');
-            const newId = `prop-${Date.now()}`;
-            const newProp = { id: newId, name: 'Nueva Columna', type: 'text', required: false, kanban: false };
-            propertiesContainer.insertAdjacentHTML('beforeend', renderPropertyField(newProp));
-        }
-
-        /** Elimina un campo de propiedad. */
-        function removePropertyField(button) {
-            if (button.disabled) return;
-            button.closest('.property-item').remove();
-        }
-
-        /** Maneja el guardado de la configuración del workspace. */
-        async function handleSaveWorkspaceConfig(event) {
-            event.preventDefault();
-            const wsId = parseInt(document.getElementById('config-workspace-id').value);
-            const wsName = document.getElementById('config-workspace-name').value;
-            const properties = [];
-
-            document.querySelectorAll('.property-item').forEach(item => {
-                const type = item.querySelector('.property-type').value;
-                const prop = {
-                    id: item.dataset.id.startsWith('prop-') ? `custom-${Date.now()}` : item.dataset.id, // Reemplazar IDs temporales
-                    name: item.querySelector('.property-name').value,
-                    type: type,
-                    required: item.dataset.id === 'title',
-                    kanban: type === 'select' ? item.querySelector('.property-kanban').checked : false, // Solo si es 'select'
-                };
-                if (type === 'select') {
-                    const optionsRaw = item.querySelector('.property-options') ? item.querySelector('.property-options').value : '';
-                    prop.options = optionsRaw.split(',').map(s => s.trim()).filter(s => s.length > 0);
-                }
-                properties.push(prop);
-            });
-
-            const wsIndex = state.workspaces.findIndex(w => w.id === wsId);
-            if (wsIndex === -1) return;
-
-            // Actualizar Workspace
-            state.workspaces[wsIndex].name = wsName;
-            state.workspaces[wsIndex].properties = properties;
-            await dbLocal.workspaces.update(wsId, { name: wsName, properties: properties });
-
-            // Actualizar UI y cerrar
-            renderWorkspaceList();
-            setActiveWorkspace(wsId);
-            closeModal('workspace-config-modal');
-            showToast('Configuración guardada.', 'success');
-        }
-
-        // =========================================================================
-        // SECCIÓN 5: VISTAS Y RENDERIZADO
-        // =========================================================================
-
-        /** Renderiza las pestañas de vista. */
-        function renderViewTabs(views) {
-            const tabsContainer = document.getElementById('view-tabs');
-            tabsContainer.innerHTML = '';
-
-            const icons = {
-                'panel': '📋 Panel',
-                'kanban': '🗂️ Kanban',
-                'calendar': '🗓️ Calendario'
+                    { name: 'Título', type: 'text' },
+                    { name: 'Fecha', type: 'date' },
+                    { name: 'Estado', type: 'select', options: ['Pendiente','En Proceso','Terminado'] }
+                ]
             };
 
-            views.forEach(view => {
+            const id = await dbLocal.workspaces.add(newWs);
+            state.workspaces.push({ id, ...newWs });
+
+            renderWorkspaceList();
+            setActiveWorkspace(id);
+        }
+
+        function renderWorkspaceList() {
+            const list = document.getElementById('workspace-list');
+            list.innerHTML = "";
+
+            state.workspaces.forEach(ws => {
                 const btn = document.createElement('button');
-                btn.className = `tab-button px-4 py-2 text-sm font-semibold rounded-lg transition-colors border-2 border-transparent ${state.currentView === view ? 'active' : 'hover:bg-gray-100'}`;
-                btn.textContent = icons[view] || view;
-                btn.onclick = () => {
-                    state.currentView = view;
-                    renderViewTabs(views);
-                    renderCurrentView();
-                };
-                tabsContainer.appendChild(btn);
+                btn.className = "w-full text-left p-2 rounded-lg hover:bg-gray-100 text-gray-800";
+                btn.textContent = ws.name;
+                btn.onclick = () => setActiveWorkspace(ws.id);
+
+                list.appendChild(btn);
             });
         }
 
-        /** Renderiza la vista activa actual. */
-        function renderCurrentView() {
-            const contentView = document.getElementById('content-view');
-            contentView.innerHTML = '';
-            const ws = state.workspaces.find(w => w.id === state.currentWorkspaceId);
-            if (!ws) {
-                contentView.innerHTML = '<p class="text-center text-gray-500">Selecciona un espacio de trabajo.</p>';
-                return;
-            }
+        async function setActiveWorkspace(id) {
+            state.currentWorkspaceId = id;
 
-            switch (state.currentView) {
-                case 'panel':
-                    renderPanelView(contentView, ws, state.currentRecords);
-                    break;
-                case 'kanban':
-                    renderKanbanView(contentView, ws, state.currentRecords);
-                    break;
-                case 'calendar':
-                    renderCalendarView(contentView, ws, state.currentRecords);
-                    break;
-                default:
-                    contentView.innerHTML = '<p class="text-center text-red-500">Vista no soportada.</p>';
-            }
+            const workspace = state.workspaces.find(w => w.id === id);
+            document.getElementById('current-workspace-title').textContent = workspace.name;
+
+            document.getElementById('btn-configure-ws').classList.remove("hidden");
+
+            await loadRecords(id);
+            renderTabs();
+            renderContent();
         }
 
-        // --- RENDERIZADO DEL PANEL (TABLA) ---
+        /* ========================
+           REGISTROS
+        ======================== */
 
-        /** Renderiza la vista de Panel (Tabla). */
-        function renderPanelView(container, ws, records) {
-            if (records.length === 0) {
-                container.innerHTML = '<p class="text-center text-gray-500 p-8">No hay elementos. Haz clic en "+ Nuevo Elemento" para comenzar.</p>';
-                return;
-            }
-
-            const tableHTML = `
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                ${ws.properties.map(prop => `<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${prop.name}</th>`).join('')}
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="panel-table-body" class="bg-white divide-y divide-gray-200">
-                            ${records.map(record => renderPanelRow(record, ws)).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-            container.innerHTML = tableHTML;
+        async function loadRecords(workspaceId) {
+            state.currentRecords = await dbLocal.records
+                .where("workspaceId")
+                .equals(workspaceId)
+                .toArray();
         }
 
-        /** Renderiza una fila de la tabla (Panel). */
-        function renderPanelRow(record, ws) {
-            const cells = ws.properties.map(prop => {
-                const value = record.properties[prop.id] || '';
-                let displayValue = value;
-                let cellContent;
+        function showItemModal(record = null) {
+            const modal = document.getElementById('item-modal');
+            const titleEl = document.getElementById('item-modal-title');
+            const deleteBtn = document.getElementById('btn-delete-record');
 
-                // Estilización y formato para valores
-                if (prop.type === 'date' && value) {
-                    displayValue = new Date(value).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' });
-                } else if (prop.type === 'select' && value) {
-                    const color = getColorForSelect(value);
-                    displayValue = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${color}">${value}</span>`;
-                }
-
-                // Generación de contenido de celda editable
-                cellContent = `<div
-                                    class="editable-cell min-w-[100px]"
-                                    data-record-id="${record.id}"
-                                    data-prop-id="${prop.id}"
-                                    data-prop-type="${prop.type}"
-                                    onclick="enableInlineEdit(this, event)"
-                                >${displayValue || '...'}</div>`;
-
-                // Manejo especial para 'title' (se mantiene como clickable para abrir el modal)
-                if (prop.id === 'title') {
-                    cellContent = `<div class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 cursor-pointer" onclick="showItemModal(${record.id})">
-                                       ${record.title || value}
-                                   </div>`;
-                } else {
-                    cellContent = `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                       ${cellContent}
-                                   </td>`;
-                }
-
-                return cellContent;
-            }).join('');
-
-            return `
-                <tr data-record-id="${record.id}" class="hover:bg-gray-50 transition-colors">
-                    ${cells}
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button onclick="showItemModal(${record.id})" class="text-indigo-600 hover:text-indigo-900 p-1 rounded-full hover:bg-indigo-50">
-                            ✏️
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }
-
-        // --- RENDERIZADO DEL KANBAN ---
-
-        /** Renderiza la vista de Kanban. */
-        function renderKanbanView(container, ws, records) {
-            const kanbanProperty = ws.properties.find(p => p.kanban && p.type === 'select');
-
-            if (!kanbanProperty) {
-                container.innerHTML = '<div class="p-8 text-center text-red-500">¡Error! Ninguna propiedad de tipo "Selección" está marcada para usar en Kanban. Edita la configuración del espacio.</div>';
-                return;
+            if (record) {
+                titleEl.textContent = "Editar Elemento";
+                deleteBtn.classList.remove("hidden");
+                fillRecordForm(record);
+            } else {
+                titleEl.textContent = "Nuevo Elemento";
+                deleteBtn.classList.add("hidden");
+                clearRecordForm();
             }
 
-            const options = kanbanProperty.options || [];
-            const columnsHTML = options.map(option => {
-                const columnRecords = records.filter(r => r.properties[kanbanProperty.id] === option);
-                return `
-                    <div class="kanban-column flex flex-col bg-gray-100 p-4 rounded-xl shadow-inner mx-2"
-                         data-kanban-id="${kanbanProperty.id}"
-                         data-kanban-value="${option}"
-                         ondragover="handleDragOver(event)"
-                         ondragleave="handleDragLeave(event)"
-                         ondrop="handleDrop(event)">
-                        <h4 class="text-lg font-bold mb-4 flex justify-between items-center ${getColorClassForText(option)}">
-                            ${option}
-                            <span class="text-xs font-semibold text-gray-500 bg-white px-2 py-0.5 rounded-full">${columnRecords.length}</span>
-                        </h4>
-                        <div class="kanban-cards-container flex-grow space-y-3">
-                            ${columnRecords.map(record => renderKanbanCard(record, kanbanProperty.id)).join('')}
-                        </div>
-                    </div>
+            openModal('item-modal');
+        }
+
+        function fillRecordForm(record) {
+            document.getElementById('record-id').value = record.id;
+            document.getElementById('record-workspaceId').value = record.workspaceId;
+
+            const ws = state.workspaces.find(w => w.id === record.workspaceId);
+            const container = document.getElementById('dynamic-properties-container');
+            container.innerHTML = "";
+
+            ws.properties.forEach(prop => {
+                const value = record.properties[prop.name] || "";
+
+                const field = document.createElement('div');
+                field.innerHTML = `
+                    <label class="block text-xs font-semibold text-gray-700">${prop.name}</label>
+                    ${generateInputForProperty(prop, value)}
                 `;
-            }).join('');
+
+                container.appendChild(field);
+            });
+
+            document.getElementById('record-content-block').value = record.content || "";
+        }
+
+        function clearRecordForm() {
+            document.getElementById('record-id').value = "";
+            document.getElementById('record-workspaceId').value = state.currentWorkspaceId;
+            document.getElementById('dynamic-properties-container').innerHTML = "";
+            document.getElementById('record-content-block').value = "";
+
+            const ws = state.workspaces.find(w => w.id === state.currentWorkspaceId);
+            ws.properties.forEach(prop => {
+                const container = document.getElementById('dynamic-properties-container');
+                const div = document.createElement('div');
+
+                div.innerHTML = `
+                    <label class="block text-xs font-semibold text-gray-700">${prop.name}</label>
+                    ${generateInputForProperty(prop)}
+                `;
+
+                container.appendChild(div);
+            });
+        }
+
+        function generateInputForProperty(prop, value = "") {
+            switch (prop.type) {
+                case 'text':
+                    return `<input type="text" class="block w-full rounded-lg border-gray-300 shadow-sm p-2" 
+                                 data-prop="${prop.name}" value="${value}">`;
+                case 'number':
+                    return `<input type="number" class="block w-full rounded-lg border-gray-300 shadow-sm p-2" 
+                                 data-prop="${prop.name}" value="${value}">`;
+                case 'date':
+                    return `<input type="date" class="block w-full rounded-lg border-gray-300 shadow-sm p-2" 
+                                 data-prop="${prop.name}" value="${value}">`;
+                case 'select':
+                    return `
+                        <select class="block w-full rounded-lg border-gray-300 shadow-sm p-2" 
+                                data-prop="${prop.name}">
+                            ${prop.options.map(op => 
+                                `<option value="${op}" ${op === value ? 'selected' : ''}>${op}</option>`
+                            ).join('')}
+                        </select>
+                    `;
+                default:
+                    return "";
+            }
+        }
+
+        /* Guardar registro */
+        document.getElementById('record-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('record-id').value;
+            const workspaceId = Number(document.getElementById('record-workspaceId').value);
+
+            const ws = state.workspaces.find(w => w.id === workspaceId);
+            const props = {};
+
+            document.querySelectorAll('[data-prop]').forEach(input => {
+                props[input.dataset.prop] = input.value;
+            });
+
+            const recordData = {
+                workspaceId,
+                title: props['Título'] || "Sin Título",
+                properties: props,
+                content: document.getElementById('record-content-block').value
+            };
+
+            if (id) {
+                await dbLocal.records.update(Number(id), recordData);
+            } else {
+                await dbLocal.records.add(recordData);
+            }
+
+            await loadRecords(workspaceId);
+            renderContent();
+            closeModal('item-modal');
+            showMessage("Elemento guardado correctamente", "success");
+        });
+/* ========================
+           ELIMINAR REGISTRO
+        ======================== */
+
+        async function deleteRecord(id) {
+            if (!confirm("¿Eliminar este elemento?")) return;
+
+            await dbLocal.records.delete(Number(id));
+            await loadRecords(state.currentWorkspaceId);
+
+            renderContent();
+            closeModal('item-modal');
+            showMessage("Elemento eliminado", "success");
+        }
+
+        /* ========================
+           TABS / VISTAS
+        ======================== */
+
+        function renderTabs() {
+            const container = document.getElementById('view-tabs');
+            container.innerHTML = "";
+
+            const tabs = [
+                { id: 'panel', label: 'Panel' },
+                { id: 'tabla', label: 'Tabla' },
+                { id: 'agenda', label: 'Agenda' },
+                { id: 'kanban', label: 'Kanban' }
+            ];
+
+            tabs.forEach(t => {
+                const btn = document.createElement('button');
+                btn.textContent = t.label;
+                btn.dataset.view = t.id;
+
+                btn.className =
+                    "px-4 py-2 rounded-lg text-sm font-semibold transition-colors tab-button " +
+                    (state.currentView === t.id
+                        ? "active"
+                        : "hover:bg-gray-100 text-gray-600");
+
+                btn.onclick = () => {
+                    state.currentView = t.id;
+                    renderTabs();
+                    renderContent();
+                };
+
+                container.appendChild(btn);
+            });
+        }
+
+        /* ========================
+           RENDERIZAR VISTAS
+        ======================== */
+
+        function renderContent() {
+            switch (state.currentView) {
+                case "panel":
+                    renderPanel();
+                    break;
+                case "tabla":
+                    renderTable();
+                    break;
+                case "agenda":
+                    renderAgenda();
+                    break;
+                case "kanban":
+                    renderKanban();
+                    break;
+            }
+        }
+
+        /* PANEL */
+        function renderPanel() {
+            const container = document.getElementById('content-view');
 
             container.innerHTML = `
-                <div class="flex overflow-x-auto pb-4 -mx-2 h-[80vh]">
-                    ${columnsHTML}
-                </div>
-            `;
-        }
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-        /** Renderiza una tarjeta de Kanban. */
-        function renderKanbanCard(record, kanbanPropId) {
-            const title = record.title || record.properties.title || 'Sin Título';
-            const dueDate = record.properties.dueDate;
-            const priority = record.properties.priority;
-
-            const dueText = dueDate ? `<span class="text-xs text-gray-500 flex items-center mt-1">🗓️ ${new Date(dueDate).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}</span>` : '';
-            const priorityBadge = priority ? `<span class="text-xs font-medium ${getColorForSelect(priority)} px-2 py-0.5 rounded-full">${priority}</span>` : '';
-
-            return `
-                <div class="kanban-card bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow border-t-4 border-indigo-400"
-                     draggable="true"
-                     data-record-id="${record.id}"
-                     ondragstart="handleDragStart(event)"
-                     onclick="showItemModal(${record.id})">
-                    <div class="flex justify-between items-start mb-2">
-                        <h5 class="font-semibold text-gray-900">${title}</h5>
-                        ${priorityBadge}
+                    <div class="p-6 bg-indigo-50 rounded-xl shadow">
+                        <p class="text-6xl font-extrabold text-indigo-600">${state.currentRecords.length}</p>
+                        <p class="text-gray-600 font-semibold">TOTAL REGISTROS</p>
                     </div>
-                    ${dueText}
+
+                    <div class="p-6 bg-green-50 rounded-xl shadow">
+                        <p class="text-6xl font-extrabold text-green-600">
+                            ${state.currentRecords.filter(r => r.properties.Estado === "Terminado").length}
+                        </p>
+                        <p class="text-gray-600 font-semibold">TERMINADOS</p>
+                    </div>
+
+                    <div class="p-6 bg-yellow-50 rounded-xl shadow">
+                        <p class="text-6xl font-extrabold text-yellow-600">
+                            ${state.currentRecords.filter(r => r.properties.Estado === "Pendiente").length}
+                        </p>
+                        <p class="text-gray-600 font-semibold">PENDIENTES</p>
+                    </div>
+
                 </div>
             `;
         }
 
-        // --- RENDERIZADO DEL CALENDARIO ---
+        /* TABLA */
+        function renderTable() {
+            const container = document.getElementById('content-view');
+            const ws = state.workspaces.find(w => w.id === state.currentWorkspaceId);
 
-        /** Renderiza la vista de Calendario. */
-        function renderCalendarView(container, ws, records) {
-            const dateProperty = ws.properties.find(p => p.type === 'date');
+            let html = `
+                <table class="min-w-full text-sm border-collapse">
+                    <thead>
+                        <tr class="border-b bg-gray-50">
+                            ${ws.properties.map(p =>
+                                `<th class="p-2 text-left font-semibold text-gray-700">${p.name}</th>`
+                            ).join("")}
+                            <th class="p-2"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
 
-            if (!dateProperty) {
-                container.innerHTML = '<div class="p-8 text-center text-red-500">¡Error! Ninguna propiedad de tipo "Fecha" está disponible para el Calendario.</div>';
-                return;
-            }
-
-            // Crear un div para el calendario
-            const calendarEl = document.createElement('div');
-            calendarEl.id = 'full-calendar';
-            calendarEl.className = 'w-full h-full p-2';
-            container.appendChild(calendarEl);
-
-            // Transformar registros a eventos de FullCalendar
-            const events = records
-                .filter(record => record.properties[dateProperty.id])
-                .map(record => ({
-                    id: record.id,
-                    title: record.title || record.properties.title || 'Elemento',
-                    start: record.properties[dateProperty.id],
-                    allDay: true,
-                    // Opcional: color basado en una propiedad (ej. priority)
-                    color: getColorCodeForSelect(record.properties.priority)
-                }));
-
-            // Inicializar FullCalendar
-            const calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
-                locale: 'es',
-                height: 'auto',
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
-                },
-                events: events,
-                eventClick: function(info) {
-                    showItemModal(parseInt(info.event.id));
-                },
-                eventDrop: async function(info) {
-                    // Manejar la actualización de fecha al arrastrar en el calendario
-                    const recordId = parseInt(info.event.id);
-                    const newDate = info.event.startStr.split('T')[0]; // Obtener solo la fecha
-                    await updateRecordInline(recordId, dateProperty.id, newDate);
-                    showToast('Fecha actualizada en el calendario.', 'success');
-                },
-                editable: true,
-                droppable: true
+            state.currentRecords.forEach(r => {
+                html += `
+                    <tr class="border-b hover:bg-gray-50">
+                        ${ws.properties.map(p =>
+                            `<td class="p-2 editable-cell" onclick="showItemModal(${r.id})">
+                                ${r.properties[p.name] || ""}
+                            </td>`
+                        ).join("")}
+                        <td class="p-2 text-right">
+                            <button onclick="showItemModal(${r.id})"
+                                class="text-indigo-600 hover:text-indigo-800">Editar</button>
+                        </td>
+                    </tr>
+                `;
             });
+
+            html += "</tbody></table>";
+            container.innerHTML = html;
+        }
+
+        /* AGENDA */
+        function renderAgenda() {
+            const container = document.getElementById('content-view');
+            container.innerHTML = `<div id="calendar"></div>`;
+
+            const events = state.currentRecords.map(r => ({
+                title: r.title,
+                start: r.properties["Fecha"],
+                backgroundColor: "#6366f1"   /* ← corregido (antes tenía ##) */
+            }));
+
+            const calendar = new FullCalendar.Calendar(
+                document.getElementById('calendar'),
+                {
+                    initialView: "dayGridMonth",
+                    selectable: true,
+                    events
+                }
+            );
+
             calendar.render();
         }
 
-        // =========================================================================
-        // SECCIÓN 6: LÓGICA DE DRAG AND DROP (KANBAN)
-        // =========================================================================
+        /* KANBAN */
+        function renderKanban() {
+            const container = document.getElementById('content-view');
 
-        /** Inicia el arrastre de la tarjeta. */
-        function handleDragStart(event) {
-            event.dataTransfer.setData('text/plain', event.target.dataset.recordId);
-            event.target.classList.add('opacity-50');
-        }
+            const statuses = ["Pendiente", "En Proceso", "Terminado"];
 
-        /** Maneja el arrastre sobre una columna. */
-        function handleDragOver(event) {
-            event.preventDefault();
-            event.currentTarget.classList.add('drag-hover');
-        }
+            let html = `
+                <div class="flex space-x-4 overflow-x-auto pb-4">
+            `;
 
-        /** Maneja la salida del arrastre de una columna. */
-        function handleDragLeave(event) {
-            event.currentTarget.classList.remove('drag-hover');
-        }
-
-        /** Maneja la caída de la tarjeta en una nueva columna. */
-        async function handleDrop(event) {
-            event.preventDefault();
-            const targetColumn = event.currentTarget;
-            targetColumn.classList.remove('drag-hover');
-
-            const recordId = parseInt(event.dataTransfer.getData('text/plain'));
-            const kanbanPropId = targetColumn.dataset.kanbanId;
-            const newKanbanValue = targetColumn.dataset.kanbanValue;
-
-            // Encontrar el registro y actualizar su propiedad
-            const record = state.currentRecords.find(r => r.id === recordId);
-            if (record && record.properties[kanbanPropId] !== newKanbanValue) {
-                await updateRecordInline(recordId, kanbanPropId, newKanbanValue);
-                showToast(`Elemento movido a "${newKanbanValue}"`, 'success');
-            }
-
-            // Eliminar la clase de opacidad del elemento que se estaba arrastrando
-            const draggedElement = document.querySelector(`[data-record-id="${recordId}"]`);
-            if (draggedElement) {
-                draggedElement.classList.remove('opacity-50');
-            }
-
-            loadRecordsAndRender(); // Recargar la vista para reflejar el cambio
-        }
-
-        // =========================================================================
-        // SECCIÓN 7: EDICIÓN Y PERSISTENCIA DE REGISTROS (Dexie Only)
-        // =========================================================================
-
-        /** Muestra el modal para crear o editar un elemento. */
-        async function showItemModal(id = null) {
-            const ws = state.workspaces.find(w => w.id === state.currentWorkspaceId);
-            if (!ws) {
-                showToast('Selecciona un espacio de trabajo primero.', 'error');
-                return;
-            }
-
-            const isEditing = id !== null;
-            let record = isEditing ? state.currentRecords.find(r => r.id === id) : null;
-
-            document.getElementById('item-modal-title').textContent = isEditing ? 'Editar Elemento' : 'Nuevo Elemento';
-            document.getElementById('record-id').value = isEditing ? id : '';
-            document.getElementById('record-workspaceId').value = ws.id;
-            document.getElementById('record-content-block').value = record ? (record.contentBlock || '') : '';
-            document.getElementById('btn-delete-record').classList.toggle('hidden', !isEditing);
-
-            // Renderizar propiedades dinámicas
-            renderPropertiesContainer(document.getElementById('dynamic-properties-container'), ws.properties, record ? record.properties : {});
-
-            // Asignar el listener de submit
-            document.getElementById('record-form').onsubmit = handleSaveRecord;
-
-            showModal('item-modal');
-        }
-
-        /** Renderiza los campos de propiedades en el modal. */
-        function renderPropertiesContainer(container, properties, currentValues) {
-            container.innerHTML = properties.map(prop => {
-                const currentValue = currentValues[prop.id] || '';
-                let inputHTML;
-
-                switch (prop.type) {
-                    case 'text':
-                        inputHTML = `<input type="text" id="prop-${prop.id}" value="${currentValue}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-indigo-500 focus:ring-indigo-500" ${prop.id === 'title' ? 'autofocus' : ''}>`;
-                        break;
-                    case 'select':
-                        inputHTML = `
-                            <select id="prop-${prop.id}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="">(Seleccionar)</option>
-                                ${prop.options.map(opt => `<option value="${opt}" ${opt === currentValue ? 'selected' : ''}>${opt}</option>`).join('')}
-                            </select>
-                        `;
-                        break;
-                    case 'date':
-                        inputHTML = `<input type="date" id="prop-${prop.id}" value="${currentValue}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-indigo-500 focus:ring-indigo-500">`;
-                        break;
-                    default:
-                        inputHTML = '';
-                }
-
-                const label = prop.id === 'title' ? '' : `<label for="prop-${prop.id}" class="block text-sm font-medium text-gray-700">${prop.name}${prop.required ? ' *' : ''}</label>`;
-
-                return `
-                    <div>
-                        ${label}
-                        ${inputHTML}
+            statuses.forEach(status => {
+                html += `
+                    <div class="kanban-column bg-gray-50 rounded-xl p-3 shadow"
+                         data-status="${status}">
+                        <h3 class="font-bold text-gray-700 mb-2">${status}</h3>
+                        <div class="kanban-list space-y-3" data-list="${status}">
+                            ${state.currentRecords
+                                .filter(r => r.properties.Estado === status)
+                                .map(r => `
+                                    <div class="kanban-card bg-white p-3 rounded-lg shadow cursor-pointer"
+                                         draggable="true"
+                                         data-id="${r.id}"
+                                         onclick="showItemModal(${r.id})">
+                                        <p class="font-semibold">${r.title}</p>
+                                        <p class="text-xs text-gray-500">${r.properties.Fecha || ""}</p>
+                                    </div>
+                                `)
+                                .join("")}
+                        </div>
                     </div>
                 `;
-            }).join('');
-        }
-
-        /** Maneja el envío del formulario de registro (Crear/Editar). */
-        async function handleSaveRecord(event) {
-            event.preventDefault();
-
-            const form = event.target;
-            const recordId = form.querySelector('#record-id').value;
-            const wsId = parseInt(form.querySelector('#record-workspaceId').value);
-            const contentBlock = form.querySelector('#record-content-block').value;
-            const ws = state.workspaces.find(w => w.id === wsId);
-
-            const properties = {};
-            let isFormValid = true;
-
-            ws.properties.forEach(prop => {
-                const input = form.querySelector(`#prop-${prop.id}`);
-                let value = input ? input.value.trim() : '';
-
-                if (prop.required && !value) {
-                    showToast(`El campo "${prop.name}" es obligatorio.`, 'error');
-                    input.focus();
-                    isFormValid = false;
-                }
-
-                properties[prop.id] = value;
             });
 
-            if (!isFormValid) return;
+            html += "</div>";
+            container.innerHTML = html;
 
-            const recordData = {
-                workspaceId: wsId,
-                title: properties.title || 'Sin título',
-                properties: properties,
-                contentBlock: contentBlock,
-                lastModified: Date.now()
-            };
-
-            try {
-                if (recordId) {
-                    // EDITAR
-                    const id = parseInt(recordId);
-                    await dbLocal.records.update(id, recordData);
-                    showToast('Elemento actualizado exitosamente (Local).', 'success');
-                } else {
-                    // CREAR
-                    await dbLocal.records.add(recordData);
-                    showToast('Elemento creado exitosamente (Local).', 'success');
-                }
-                closeModal('item-modal');
-                loadRecordsAndRender();
-            } catch (error) {
-                console.error("Error al guardar el registro:", error);
-                showToast('Error al guardar el elemento.', 'error');
-            }
+            initKanbanDrag();
         }
 
-        /** Elimina un registro por ID. */
-        async function deleteRecord(recordIdString) {
-            const id = parseInt(recordIdString);
-            if (!id || !confirm('¿Estás seguro de que quieres eliminar este elemento?')) return;
+        function initKanbanDrag() {
+            const cards = document.querySelectorAll(".kanban-card");
+            const lists = document.querySelectorAll(".kanban-list");
 
-            try {
-                await dbLocal.records.delete(id);
-                closeModal('item-modal');
-                loadRecordsAndRender();
-                showToast('Elemento eliminado (Local).', 'info');
-            } catch (error) {
-                console.error("Error al eliminar el registro:", error);
-                showToast('Error al eliminar el elemento.', 'error');
-            }
-        }
+            let dragged = null;
 
-        /** Permite la edición de una celda de la tabla (Panel) in-line. */
-        function enableInlineEdit(cell, event) {
-            // Evitar que el clic en un elemento interactivo anidado (como el badge del select)
-            // dispare la edición si no es la celda misma.
-            if (event && event.target !== cell && event.target.closest('span')) return;
+            cards.forEach(card => {
+                card.addEventListener("dragstart", () => {
+                    dragged = card;
+                    setTimeout(() => card.classList.add("opacity-50"), 0);
+                });
 
-            // Prevenir doble clic si ya está editando
-            if (cell.querySelector('input, select')) return;
+                card.addEventListener("dragend", () => {
+                    card.classList.remove("opacity-50");
+                    dragged = null;
+                });
+            });
 
-            const recordId = parseInt(cell.dataset.recordId);
-            const propId = cell.dataset.propId;
-            const propType = cell.dataset.propType;
-            const record = state.currentRecords.find(r => r.id === recordId);
-            const ws = state.workspaces.find(w => w.id === state.currentWorkspaceId);
-            const propDef = ws.properties.find(p => p.id === propId);
+            lists.forEach(list => {
+                list.addEventListener("dragover", e => e.preventDefault());
 
-            if (!record || !propDef) return;
+                list.addEventListener("drop", async () => {
+                    if (!dragged) return;
 
-            const originalValue = record.properties[propId] || '';
-            let inputElement;
+                    const id = Number(dragged.dataset.id);
 
-            // 1. Crear el elemento de entrada adecuado
-            switch (propType) {
-                case 'text':
-                    inputElement = document.createElement('input');
-                    inputElement.type = 'text';
-                    inputElement.value = originalValue;
-                    break;
-                case 'date':
-                    inputElement = document.createElement('input');
-                    inputElement.type = 'date';
-                    inputElement.value = originalValue;
-                    break;
-                case 'select':
-                    inputElement = document.createElement('select');
-                    inputElement.innerHTML = `
-                        <option value="">(Seleccionar)</option>
-                        ${propDef.options.map(opt => `<option value="${opt}" ${opt === originalValue ? 'selected' : ''}>${opt}</option>`).join('')}
-                    `;
-                    break;
-                default:
-                    return; // No editable in-line
-            }
-
-            // 2. Reemplazar el contenido de la celda con el input/select
-            cell.innerHTML = '';
-            cell.appendChild(inputElement);
-            inputElement.focus();
-            cell.classList.add('bg-white', 'shadow-inner');
-
-            // 3. Definir el manejador de finalización de edición
-            const finishEdit = async (newValue) => {
-                // Limpieza de estilos y listeners
-                cell.classList.remove('bg-white', 'shadow-inner');
-                // Remover listeners (focusout es el más importante para inputs)
-                inputElement.removeEventListener('focusout', focusOutHandler);
-                inputElement.removeEventListener('keypress', keyPressHandler);
-                inputElement.removeEventListener('change', changeHandler);
-
-                if (newValue !== originalValue) {
-                    try {
-                        await updateRecordInline(recordId, propId, newValue);
-                        showToast('Cambio rápido guardado (Local).', 'success');
-                    } catch (e) {
-                        console.error("Error saving inline edit:", e);
-                        showToast('Error al guardar. Revierte el cambio.', 'error');
-                    }
-                }
-
-                // Volver a renderizar la vista (para reflejar los cambios en badges/fechas)
-                loadRecordsAndRender();
-            };
-
-            // 4. Manejadores de eventos
-            const focusOutHandler = () => {
-                const newValue = inputElement.value.trim();
-                finishEdit(newValue);
-            };
-
-            const keyPressHandler = (e) => {
-                if (e.key === 'Enter') {
-                    // Prevenir el envío del formulario si está dentro de uno (no debería)
-                    e.preventDefault();
-                    inputElement.blur(); // Dispara focusOutHandler
-                }
-            };
-
-            const changeHandler = (e) => {
-                if (propType === 'select') {
-                    // Para select, guardar inmediatamente al cambiar
-                    finishEdit(e.target.value.trim());
-                }
-            };
-
-            // Para inputs de texto/fecha, usamos focusout y enter
-            if (propType === 'text' || propType === 'date') {
-                inputElement.addEventListener('focusout', focusOutHandler);
-                inputElement.addEventListener('keypress', keyPressHandler);
-            }
-            // Para select, usamos change
-            if (propType === 'select') {
-                inputElement.addEventListener('change', changeHandler);
-                inputElement.addEventListener('focusout', focusOutHandler); // Como fallback
-            }
-        }
-
-        /** Actualiza una propiedad de un registro en Dexie. */
-        async function updateRecordInline(recordId, propId, newValue) {
-            const record = state.currentRecords.find(r => r.id === recordId);
-            if (!record) return;
-
-            // 1. Crear el objeto de actualización
-            const updatedProperties = {
-                ...record.properties,
-                [propId]: newValue
-            };
-
-            // 2. Actualizar Dexie
-            const updateData = {
-                properties: updatedProperties,
-                lastModified: Date.now()
-            };
-            // Si el título se modifica, actualizar la propiedad 'title' a nivel de registro
-            if (propId === 'title') {
-                updateData.title = newValue;
-            }
-
-            await dbLocal.records.update(recordId, updateData);
-
-            // 3. Reflejar en el estado local (para consistencia inmediata)
-            record.properties = updatedProperties;
-            if (propId === 'title') {
-                record.title = newValue;
-            }
-        }
-
-        // =========================================================================
-        // SECCIÓN 8: SINCRONIZACIÓN GIST (IMPLEMENTACIÓN BÁSICA)
-        // =========================================================================
-
-        /**
-         * Llama a la API de GitHub Gist con reintentos.
-         */
-        async function fetchWithBackoff(url, options) {
-            const maxRetries = 3;
-            let lastError;
-
-            for (let i = 0; i < maxRetries; i++) {
-                try {
-                    const response = await fetch(url, options);
-                    if (response.ok) {
-                        return response;
-                    }
-                    if (response.status === 401 || response.status === 403) {
-                         // Errores de Auth, no reintentar
-                         throw new Error(`Error de autenticación: ${response.statusText}`);
-                    }
-                    // Para otros errores (404, 500, etc.), reintentar
-                    throw new Error(`Error HTTP ${response.status}: ${response.statusText}`);
-                } catch (error) {
-                    lastError = error;
-                    if (i < maxRetries - 1) {
-                        const delay = Math.pow(2, i) * 1000;
-                        console.warn(`Reintento ${i + 1} fallido. Esperando ${delay}ms...`);
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                    }
-                }
-            }
-            throw lastError; // Re-lanzar el último error después de todos los reintentos
-        }
-
-
-        /**
-         * Exporta toda la base de datos Dexie a un GitHub Gist.
-         */
-        async function exportToGist() {
-            const { token, gistId } = state.gistConfig;
-            if (!token) {
-                showToast('¡Falta el Token de GitHub!', 'error');
-                showModal('config-modal');
-                return;
-            }
-
-            try {
-                showToast('Exportando datos a Gist...', 'info');
-
-                // 1. Exportar datos de Dexie
-                const data = {
-                    workspaces: await dbLocal.workspaces.toArray(),
-                    records: await dbLocal.records.toArray(),
-                    userProfile: state.userProfile,
-                    timestamp: Date.now()
-                };
-                const fileContent = JSON.stringify(data, null, 2);
-
-                const payload = {
-                    description: "PWA RRHH - Copia de seguridad de la base de datos",
-                    public: false,
-                    files: {
-                        "pwa-rrhh-db.json": {
-                            content: fileContent
+                    await dbLocal.records.update(id, {
+                        properties: {
+                            ...state.currentRecords.find(r => r.id === id).properties,
+                            Estado: list.dataset.list
                         }
-                    }
-                };
+                    });
 
-                let url = 'https://api.github.com/gists';
-                let method = 'POST';
-
-                if (gistId) {
-                    // Si existe, actualizar
-                    url = `https://api.github.com/gists/${gistId}`;
-                    method = 'PATCH';
-                }
-
-                const response = await fetchWithBackoff(url, {
-                    method: method,
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
+                    await loadRecords(state.currentWorkspaceId);
+                    renderKanban();
                 });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    // 2. Guardar el nuevo Gist ID si fue una creación
-                    if (!gistId) {
-                        state.gistConfig.gistId = result.id;
-                        await setConfig('gistConfig', state.gistConfig);
-                    }
-                    updateSyncIndicator();
-                    showToast(`Base de datos exportada a Gist ID: ${result.id}`, 'success');
-                } else {
-                    throw new Error(result.message || 'Error desconocido al interactuar con Gist.');
-                }
-
-            } catch (error) {
-                console.error("Error en exportToGist:", error);
-                showToast(`Error de sincronización Gist: ${error.message}. Verifica tu Token.`, 'error');
-            }
+            });
         }
 
-        /**
-         * Importa toda la base de datos desde un GitHub Gist.
-         */
-        async function importFromGist() {
-            const { token, gistId } = state.gistConfig;
-            if (!token || !gistId) {
-                showToast('¡Faltan el Token o el Gist ID!', 'error');
-                showModal('config-modal');
-                return;
-            }
+        /* ========================
+           MODALES
+        ======================== */
 
-            try {
-                showToast('Importando datos desde Gist. Esto reemplazará los datos locales.', 'info');
-
-                const url = `https://api.github.com/gists/${gistId}`;
-
-                const response = await fetchWithBackoff(url, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
-                });
-
-                const result = await response.json();
-
-                if (response.ok && result.files["pwa-rrhh-db.json"]) {
-                    const fileUrl = result.files["pwa-rrhh-db.json"].raw_url;
-                    
-                    // Obtener el contenido del archivo JSON
-                    const fileResponse = await fetch(fileUrl);
-                    const fileContent = await fileResponse.json();
-
-                    // 1. Limpiar Dexie
-                    await dbLocal.workspaces.clear();
-                    await dbLocal.records.clear();
-                    
-                    // 2. Importar datos
-                    await dbLocal.workspaces.bulkAdd(fileContent.workspaces);
-                    await dbLocal.records.bulkAdd(fileContent.records);
-                    await setConfig('userProfile', fileContent.userProfile);
-
-                    // 3. Reinicializar la aplicación con los nuevos datos
-                    await initApp();
-                    showToast('Base de datos importada exitosamente desde Gist.', 'success');
-
-                } else {
-                    throw new Error(result.message || 'Archivo pwa-rrhh-db.json no encontrado en Gist o error desconocido.');
-                }
-            } catch (error) {
-                console.error("Error en importFromGist:", error);
-                showToast(`Error de importación Gist: ${error.message}.`, 'error');
-            }
+        function openModal(id) {
+            document.getElementById(id).classList.remove("hidden");
+            document.getElementById(id).classList.add("flex");
         }
 
-
-        // =========================================================================
-        // SECCIÓN 9: UTILIDADES DE ESTILO Y COLOR
-        // =========================================================================
-
-        /** Obtiene la clase de color para un valor de selección. */
-        function getColorForSelect(value) {
-            const hash = value.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-            const colors = [
-                'bg-red-100 text-red-800', 'bg-green-100 text-green-800', 'bg-blue-100 text-blue-800',
-                'bg-yellow-100 text-yellow-800', 'bg-purple-100 text-purple-800', 'bg-indigo-100 text-indigo-800',
-                'bg-pink-100 text-pink-800', 'bg-gray-200 text-gray-800'
-            ];
-            return colors[hash % colors.length];
+        function closeModal(id) {
+            document.getElementById(id).classList.add("hidden");
+            document.getElementById(id).classList.remove("flex");
         }
 
-        /** Obtiene la clase de color de texto para un valor (para títulos Kanban). */
-        function getColorClassForText(value) {
-            const hash = value.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-            const colors = [
-                'text-red-700', 'text-green-700', 'text-blue-700',
-                'text-yellow-700', 'text-purple-700', 'text-indigo-700',
-                'text-pink-700', 'text-gray-700'
-            ];
-            return colors[hash % colors.length];
+        /* ========================
+           MENSAJES
+        ======================== */
+
+        function showMessage(text, type = "success") {
+            const box = document.getElementById('app-message');
+            box.textContent = text;
+
+            box.className =
+                `fixed bottom-4 right-4 p-3 rounded-lg shadow-xl text-sm 
+                 ${type === "error" ? "bg-red-500 text-white" : "bg-green-500 text-white"}`;
+
+            box.classList.remove("hidden");
+
+            setTimeout(() => box.classList.add("hidden"), 2500);
         }
 
-        /** Obtiene el código de color hexadecimal para un valor (para eventos de calendario). */
-        function getColorCodeForSelect(value) {
-            if (!value) return '#cccccc';
-            const hash = value.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-            const codes = [
-                '#ef4444', '#10b981', '#3b82f6',
-                '#f59e0b', '#8b5cf6', '##6366f1',
-                '#ec4899', '#6b7280'
-            ];
-            return codes[hash % codes.length];
+        /* ========================
+           SERVICE WORKER
+        ======================== */
+
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("./sw.js")
+                .catch(console.error);
         }
 
+        /* ========================
+           INICIO DE LA APP
+        ======================== */
 
-        // =========================================================================
-        // INICIO DE LA APLICACIÓN
-        // =========================================================================
+        initApp();
 
-        window.onload = initApp;
-
-        // Exponer funciones globales para que puedan ser llamadas desde onclick/on... en el HTML
-        window.setActiveWorkspace = setActiveWorkspace;
-        window.addWorkspace = addWorkspace;
-        window.showItemModal = showItemModal;
-        window.showWorkspaceConfigModal = showWorkspaceConfigModal;
-        window.addPropertyField = addPropertyField;
-        window.removePropertyField = removePropertyField;
-        window.deleteRecord = deleteRecord;
-        window.showModal = showModal;
-        window.closeModal = closeModal;
-        window.showUserModal = showUserModal;
-        window.saveUserProfile = saveUserProfile;
-        window.handleDragStart = handleDragStart;
-        window.handleDragOver = handleDragOver;
-        window.handleDragLeave = handleDragLeave;
-        window.handleDrop = handleDrop;
-        window.exportToGist = exportToGist;
-        window.importFromGist = importFromGist;
-        window.saveSyncConfig = saveSyncConfig;
-        window.enableInlineEdit = enableInlineEdit;
-        window.updatePropertyOptionsInput = updatePropertyOptionsInput;
     </script>
-      <!-- Registrar el Service Worker -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then(registration => {
-            console.log('ServiceWorker registrado:', registration.scope);
-          })
-          .catch(err => {
-            console.log('Error al registrar ServiceWorker:', err);
-          });
-      });
-    }
-  </script>
+
 </body>
 </html>
