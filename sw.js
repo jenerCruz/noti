@@ -1,6 +1,6 @@
 // Aumentar la versión del caché a 'v4' para forzar la actualización de todos los usuarios
 // Si ya tenías 'v3', usa 'v4'. Si tenías 'v2', usa 'v3', etc.
-const CACHE_NAME = 'notion-hr-pwa-v7'; 
+const CACHE_NAME = 'notion-hr-pwa-v9'; 
 
 // Lista de todos los archivos del App Shell. Incluye el motor SQLite.
 const APP_SHELL = [
