@@ -13,7 +13,7 @@ const APP_SHELL = [
     './assets/css/tailwind.min.css',
     
     // --- 1. Motor de DB (CRÍTICO para SQLite) ---
-    './assets/js/sql-wasm-browser.min.js',
+    './assets/js/sql-wasm.min.js',
     './assets/js/sql-wasm.wasm', // El archivo WebAssembly debe ser cacheado
     './assets/js/db-sqlite.js',
     
