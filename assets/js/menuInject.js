@@ -1,22 +1,24 @@
 /*
  menuInject.js
  Inyecta botones en la barra lateral y en las tabs para todas las vistas nuevas.
- *** Versión corregida para usar placeholder existente ***
+ CRÍTICO: Usa los contenedores existentes #injected-views-container y #view-tabs.
 */
 
-(function(){
+(function() {
 
-  function createButton(text, onclick, className = "w-full text-left p-2 rounded-lg hover:bg-gray-100 text-gray-800 font-medium mb-1") {
-    // ... (función createButton no cambia) ...
+  function createButton(text, onclick, className = "w-full text-left p-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 font-medium mb-1 flex items-center gap-3") {
     const btn = document.createElement("button");
     btn.className = className;
-    btn.textContent = text;
+    btn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 opacity-75" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+        <span>${text}</span>
+    `; // Icono genérico para diseño
     btn.addEventListener("click", onclick);
     return btn;
   }
 
-  function injectButtons(){
-    // 🚨 CORRECCIÓN CRÍTICA: Buscar el contenedor, NO crearlo ni insertarlo con before 🚨
+  function injectButtons() {
+    // 🚨 CORRECCIÓN CRÍTICA: BUSCAR el contenedor, NO verificar si existe para salir. 🚨
     const cont = document.getElementById("injected-views-container");
     
     if(!cont) {
@@ -24,22 +26,21 @@
       return;
     }
 
-    // Si ya tiene contenido, asumir que ya se inyectó.
-    if(cont.children.length > 0) return;
+    // Limpiar por si acaso (para evitar duplicados en re-render)
+    cont.innerHTML = ''; 
 
-    // --- Inyección de botones directa al contenedor (cont) ---
+    // --- Inyección de botones de menú lateral ---
 
     // Agenda semanal
     cont.appendChild(createButton("Agenda semanal", ()=> {
       state.currentView = "agendaCustom"; 
-      if(typeof window.renderAgendaWeek === "function") window.renderAgendaWeek();
-      else window.renderContent();
+      window.refreshViews && window.refreshViews();
     }));
 
     // Panel+
     cont.appendChild(createButton("Panel+", ()=> {
       state.currentView = "panel2";
-      window.refreshViews && window.refreshViews(); // Llama a refreshViews para actualizar
+      window.refreshViews && window.refreshViews();
     }));
 
     // Galería
@@ -53,19 +54,42 @@
       state.currentView = "kanbanNative";
       window.refreshViews && window.refreshViews();
     }));
-
-    // small config button for color-by defaults
-    const cfg = document.createElement("div");
-    cfg.className = "mt-3";
-    // ... (Resto de la lógica del botón de configuración de colores) ...
     
     console.log("✅ Vistas de extensión inyectadas en el menú lateral.");
   }
   
-  // ... (El resto de las funciones openColorConfig, injectIntoTabs sigue igual) ...
+  // Inyectar botones en el header (Vista de Tabs)
+  function injectIntoTabs(){
+    const tabs = document.getElementById("view-tabs");
+    if(!tabs || tabs.querySelector("[data-injected='true']")) return;
 
-  // ---- EXPOSICIÓN GLOBAL ----
-  // Quitamos el listener 'load' y exponemos las funciones para que views.js las llame.
+    const span = document.createElement("div");
+    span.dataset.injected = "true";
+    span.className = "flex items-center space-x-2";
+
+    // NOTA: La vista "Tabla" ya se renderiza en views.js. Aquí solo inyectamos las extras.
+    
+    const viewsToInject = [
+      { text: "Kanban", view: "kanbanNative" },
+      { text: "Agenda", view: "agendaCustom" },
+      { text: "Panel+", view: "panel2" }
+    ];
+
+    viewsToInject.forEach(v => {
+        const btn = document.createElement("button");
+        btn.className="px-3 py-1 rounded-md text-sm font-medium transition duration-150 text-gray-600 hover:bg-gray-200";
+        btn.textContent=v.text;
+        btn.onclick = ()=> { 
+            state.currentView = v.view; 
+            window.refreshViews && window.refreshViews(); 
+        };
+        span.appendChild(btn);
+    });
+
+    tabs.appendChild(span);
+  }
+
+  // ---- EXPOSICIÓN GLOBAL para views.js ----
   window.MenuInject = { injectButtons, injectIntoTabs };
 
 })();
