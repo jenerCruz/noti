@@ -1,4 +1,5 @@
-const CACHE_NAME = "notion-hr-cache-v2";
+// Aumentar la versión para forzar la actualización del caché
+CACHE_NAME = "notion-hr-cache-v3";
 
 const APP_SHELL = [
   "./",
@@ -8,8 +9,11 @@ const APP_SHELL = [
   // CSS
   "./assets/css/tailwind.min.css",
 
-  // JS internos (solo los que EXISTEN)
-  "./assets/js/dexie.min.js",
+  // JS internos (¡ACTUALIZADO PARA SQLITE!)
+  "./assets/js/sql-wasm-browser.min.js", // Nuevo motor JS
+  "./assets/js/sql-wasm.wasm",           // Nuevo motor WebAssembly (CRUCIAL)
+  "./assets/js/db-sqlite.js",            // Nuevo adaptador de DB
+  
   "./assets/js/properties.js",
   "./assets/js/rules.js",
   "./assets/js/views.js",
@@ -17,8 +21,10 @@ const APP_SHELL = [
   "./assets/js/kanbanNative.js",
   "./assets/js/menuInject.js",
   "./assets/js/zoom.js",
-
+  "./assets/js/responsive.js", // Añadido
+  
   // Íconos
+  "./assets/icons/icon-32.png", // Incluido en HTML original
   "./assets/icons/icon-192.png",
   "./assets/icons/icon-512.png"
 ];
@@ -37,7 +43,7 @@ self.addEventListener("install", event => {
   self.skipWaiting();
 });
 
-// ACTIVACIÓN
+// ACTIVACIÓN (Elimina cachés viejos como v2)
 self.addEventListener("activate", event => {
   console.log("[SW] Activando service worker...");
 
