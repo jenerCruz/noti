@@ -1,148 +1,160 @@
 /*
   db-sqlite.js - Adaptador de Base de Datos para SQLite
-  Reemplaza a Dexie.js (IndexedDB) con una capa de abstracción basada en SQLite.
-  Expone el objeto global 'window.dbLocal' con las funciones asíncronas de la API de datos.
+  *** Versión Integrada con sql-wasm-browser.min.js ***
 */
 
 window.dbLocal = (function() {
-    let _dbInstance = null; // Instancia de la base de datos SQLite (ej: new SQL.Database())
+    let _dbInstance = null;
     const DB_NAME = "NotionHR_Workspace";
+    // Clave en localStorage para guardar la base de datos binaria
+    const STORAGE_KEY = `${DB_NAME}.sqlite_data`; 
 
-    // --- MOCK/SIMULACIÓN DE DATOS EN MEMORIA ---
-    // Usar solo para desarrollo. Reemplazar por la lógica real de consulta a SQLite.
-    let _mockWorkspaces = [];
-    let _mockRecords = [];
+    // --- Funciones Auxiliares de SQL ---
+    
+    // Ejecuta una sentencia sin esperar resultados (INSERT, UPDATE, DELETE, CREATE)
+    function runSql(query, params = []) {
+        if (!_dbInstance) return;
+        try {
+            _dbInstance.run(query, params);
+        } catch (e) {
+            console.error("❌ Error al ejecutar SQL:", query, params, e);
+        }
+        // Persistir inmediatamente después de cualquier cambio
+        persistDb();
+    }
+
+    // Consulta datos y retorna un array de objetos (SELECT)
+    function querySql(query, params = []) {
+        if (!_dbInstance) return [];
+        try {
+            const res = _dbInstance.exec(query, params);
+            if (!res || res.length === 0) return [];
+
+            // Mapear resultados (convierte el formato de sql.js a un array de objetos JS)
+            const rows = res[0].values;
+            const columns = res[0].columns;
+            return rows.map(row => {
+                const obj = {};
+                row.forEach((value, i) => {
+                    obj[columns[i]] = value;
+                });
+                return obj;
+            });
+        } catch (e) {
+            console.error("❌ Error al consultar SQL:", query, params, e);
+            return [];
+        }
+    }
+
+    // Guardar la DB completa en localStorage para persistir entre sesiones
+    function persistDb() {
+        if (!_dbInstance) return;
+        try {
+            const data = _dbInstance.export(); // Obtiene el archivo .sqlite binario
+            // Codificar el array binario a Base64 para guardarlo en localStorage (string)
+            const base64 = btoa(String.fromCharCode.apply(null, data));
+            localStorage.setItem(STORAGE_KEY, base64);
+        } catch (error) {
+            console.error("No se pudo persistir la DB:", error);
+        }
+    }
 
     // ===========================================
-    // 1. INICIALIZACIÓN
+    // 1. INICIALIZACIÓN (Carga y Configuración)
     // ===========================================
 
     async function init() {
-        console.log("🛠️ Inicializando adaptador de DB SQLite...");
+        console.log("🛠️ Inicializando DB SQLite local...");
 
+        // initSqlJs() viene de la librería sql-wasm-browser.min.js.
         try {
-            // 💡 PASO 1: Cargar la librería SQLite.
-            // Si usas sql.js, la lógica real iría aquí:
-            // const SQL = await initSqlJs({ locateFile: file => './assets/js/sql-wasm.wasm' });
-            // _dbInstance = new SQL.Database();
-            
-            // --- Carga de datos de ejemplo (solo para la simulación) ---
-            if (localStorage.getItem('db_initialized') !== 'true') {
-                _mockWorkspaces = [
-                    { id: "ws-main", name: "Principal", properties: window.initialProperties || [] },
-                    { id: "ws-hr", name: "Recursos Humanos", properties: [] }
-                ];
-                _mockRecords = [];
-                localStorage.setItem('db_initialized', 'true');
-                console.log("Datos de ejemplo cargados en la simulación.");
+            // Pasamos un objeto de configuración para que encuentre el archivo .wasm
+            const SQL = await initSqlJs({ 
+                // La función locateFile debe devolver la ruta correcta para sql-wasm.wasm
+                locateFile: filename => `./assets/js/${filename}` // Esto localizará 'sql-wasm.wasm'
+            });
+
+            // Cargar DB desde localStorage si existe
+            const data = localStorage.getItem(STORAGE_KEY);
+            if (data) {
+                const buffer = Uint8Array.from(atob(data), c => c.charCodeAt(0));
+                _dbInstance = new SQL.Database(buffer);
             } else {
-                // Recuperar datos mock si existen
-                _mockWorkspaces = JSON.parse(localStorage.getItem('workspaces') || '[]');
-                _mockRecords = JSON.parse(localStorage.getItem('records') || '[]');
+                _dbInstance = new SQL.Database();
+            }
+            
+            // Definición de Tablas
+            runSql(`CREATE TABLE IF NOT EXISTS Workspaces (
+                id TEXT PRIMARY KEY, 
+                name TEXT NOT NULL, 
+                properties TEXT
+            )`);
+            runSql(`CREATE TABLE IF NOT EXISTS Records (
+                id TEXT PRIMARY KEY, 
+                workspaceId TEXT, 
+                title TEXT, 
+                properties TEXT
+            )`);
+
+            // Inicializar con un workspace por defecto si está vacío
+            const wsCount = querySql("SELECT COUNT(*) as count FROM Workspaces")[0]?.count || 0;
+            if (wsCount === 0) {
+                const initialWs = { id: "ws-main", name: "Principal", properties: window.initialProperties || [] };
+                await saveWorkspace(initialWs); 
             }
 
-
-            // 💡 PASO 2: Crear Tablas.
-            // _dbInstance.run("CREATE TABLE IF NOT EXISTS Workspaces (id TEXT PRIMARY KEY, name TEXT, properties TEXT)");
-            // _dbInstance.run("CREATE TABLE IF NOT EXISTS Records (id TEXT PRIMARY KEY, workspaceId TEXT, title TEXT, properties TEXT)");
-
-            console.log("✅ Conexión SQLite simulada exitosa.");
+            console.log("✅ Conexión SQLite lista.");
             return true;
         } catch (error) {
-            console.error("❌ Error al inicializar DB SQLite simulada:", error);
+            console.error("❌ Error grave al inicializar SQLite:", error);
+            alert("Error: No se pudo cargar el motor SQLite. Verifique la ruta de 'sql-wasm-browser.min.js' y 'sql-wasm.wasm' en './assets/js/'.");
             return false;
         }
     }
 
     // ===========================================
-    // 2. OPERACIONES DE WORKSPACES
+    // 2. OPERACIONES CRUD Workspaces
     // ===========================================
 
     async function getWorkspaces() {
-        // 💡 Lógica SQLite:
-        // const stmt = _dbInstance.prepare("SELECT * FROM Workspaces");
-        // return stmt.all().map(row => ({...row, properties: JSON.parse(row.properties)}));
-
-        // --- SIMULACIÓN ---
-        return _mockWorkspaces;
+        const results = querySql("SELECT * FROM Workspaces");
+        return results.map(row => ({
+            ...row, 
+            properties: JSON.parse(row.properties || '[]')
+        }));
     }
 
     async function saveWorkspace(workspace) {
-        // 💡 Lógica SQLite:
-        // const propsJson = JSON.stringify(workspace.properties);
-        // _dbInstance.run("REPLACE INTO Workspaces (id, name, properties) VALUES (?, ?, ?)", [workspace.id, workspace.name, propsJson]);
-
-        // --- SIMULACIÓN ---
-        const index = _mockWorkspaces.findIndex(w => w.id === workspace.id);
-        if (index > -1) {
-            _mockWorkspaces[index] = workspace;
-        } else {
-            _mockWorkspaces.push(workspace);
-        }
-        localStorage.setItem('workspaces', JSON.stringify(_mockWorkspaces));
-        console.log(`dbLocal: Workspace ${workspace.id} guardado.`);
+        const propsJson = JSON.stringify(workspace.properties);
+        runSql("REPLACE INTO Workspaces (id, name, properties) VALUES (?, ?, ?)", 
+               [workspace.id, workspace.name, propsJson]);
     }
 
     // ===========================================
-    // 3. OPERACIONES DE REGISTROS (RECORDS/ITEMS)
+    // 3. OPERACIONES CRUD Records
     // ===========================================
 
     async function getRecords(workspaceId) {
-        // 💡 Lógica SQLite:
-        // const stmt = _dbInstance.prepare("SELECT * FROM Records WHERE workspaceId = ?");
-        // return stmt.all(workspaceId).map(row => ({...row, properties: JSON.parse(row.properties)}));
-
-        // --- SIMULACIÓN ---
-        return _mockRecords.filter(r => r.workspaceId === workspaceId);
+        const results = querySql("SELECT * FROM Records WHERE workspaceId = ?", [workspaceId]);
+        return results.map(row => ({
+            ...row, 
+            properties: JSON.parse(row.properties || '{}')
+        }));
     }
 
     async function saveRecord(record) {
-        // Asegurar ID si es nuevo (esto debería hacerlo views.js, pero lo aseguramos)
         if (!record.id) record.id = `rec-${Date.now()}`;
-
-        // 💡 Lógica SQLite:
-        // const propsJson = JSON.stringify(record.properties);
-        // _dbInstance.run("REPLACE INTO Records (id, workspaceId, title, properties) VALUES (?, ?, ?, ?)", [record.id, record.workspaceId, record.title, propsJson]);
-
-        // --- SIMULACIÓN ---
-        const index = _mockRecords.findIndex(r => r.id === record.id);
-        if (index > -1) {
-            _mockRecords[index] = record;
-        } else {
-            _mockRecords.push(record);
-        }
-        localStorage.setItem('records', JSON.stringify(_mockRecords));
-        console.log(`dbLocal: Record ${record.id} guardado.`);
+        
+        const propsJson = JSON.stringify(record.properties);
+        runSql("REPLACE INTO Records (id, workspaceId, title, properties) VALUES (?, ?, ?, ?)", 
+               [record.id, record.workspaceId, record.title, propsJson]);
         return record.id;
     }
 
     async function deleteRecord(recordId) {
-        // 💡 Lógica SQLite:
-        // _dbInstance.run("DELETE FROM Records WHERE id = ?", [recordId]);
-
-        // --- SIMULACIÓN ---
-        _mockRecords = _mockRecords.filter(r => r.id !== recordId);
-        localStorage.setItem('records', JSON.stringify(_mockRecords));
-        console.log(`dbLocal: Record ${recordId} eliminado.`);
+        runSql("DELETE FROM Records WHERE id = ?", [recordId]);
     }
     
-    // ===========================================
-    // 4. EXPORTAR DATOS PARA BACKUP (GIST)
-    // ===========================================
-    
-    async function exportData() {
-        // 💡 Lógica SQLite:
-        // Deberías exportar TODAS las filas de Workspaces y Records.
-        // return { workspaces: _dbInstance.exec("SELECT * FROM Workspaces"), records: _dbInstance.exec("SELECT * FROM Records") }
-
-        // --- SIMULACIÓN ---
-        return {
-            workspaces: _mockWorkspaces,
-            records: _mockRecords
-        };
-    }
-
-
     // ===========================================
     // EXPORT PÚBLICO
     // ===========================================
@@ -153,7 +165,6 @@ window.dbLocal = (function() {
         saveWorkspace,
         getRecords,
         saveRecord,
-        deleteRecord,
-        exportData // Usado por la función exportToGist()
+        deleteRecord
     };
 })();
