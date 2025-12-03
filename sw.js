@@ -1,5 +1,5 @@
 // Aumentar la versión para forzar la actualización del caché
-CACHE_NAME = "notion-hr-cache-v6";
+CACHE_NAME = "notion-hr-cache-v7";
 
 const APP_SHELL = [
   "./",
