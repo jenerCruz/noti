@@ -1,6 +1,6 @@
 /*
   db-sqlite.js - Adaptador de Base de Datos para SQLite
-  CRÍTICO: Depende de que sql-wasm-browser.min.js se cargue primero.
+  CRÍTICO: Depende de que sql-wasmjs.js se cargue primero.
 */
 
 window.dbLocal = (function() {
@@ -23,7 +23,7 @@ window.dbLocal = (function() {
         // Aquí asumimos que el script está cargado (gracias al orden).
         
         try {
-            // initSqlJs() viene de sql-wasm-browser.min.js.
+            // initSqlJs() viene de sql-wasm.min.js.
             // locateFile le indica dónde encontrar el archivo binario sql-wasm.wasm.
             const SQL = await initSqlJs({ 
                 locateFile: filename => `./assets/js/${filename}`
