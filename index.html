@@ -84,9 +84,16 @@
 <div id="item-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-40 transition-opacity duration-300 opacity-0">...</div>
 <div id="app-message" class="fixed bottom-4 right-4 p-3 rounded-lg shadow-xl text-sm z-50 hidden"></div>
 
-
 <script src="./assets/js/sql-wasm.js"></script>
-<script src="./assets/js/db-sqlite.js"></script>
+<script>
+  initSqlJs({
+    locateFile: file => "./assets/js/" + file
+  }).then(SQL => {
+      window.SQL = SQL;
+      window.db = new SQL.Database(); 
+  });
+</script>
+
 
 <script src="./assets/js/properties.js"></script>
 <script src="./assets/js/rules.js"></script>
