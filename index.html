@@ -1,989 +1,243 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MY APP LUIS</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Notion HR — Workspace</title>
 
-    <!-- Tailwind CSS (versión local) -->
-    <link rel="stylesheet" href="./assets/css/tailwind.min.css">
+  <!-- Manifest -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#10b981">
 
-    <!-- Manifest PWA -->
-    <link rel="manifest" href="./manifest.json">
+  <!-- Tailwind local first, CDN fallback -->
+  <link rel="stylesheet" href="./assets/css/tailwind.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.10/dist/tailwind.min.css">
 
-    <!-- Dexie (solo una vez, duplicado corregido) -->
-    <script src="./assets/js/dexie.min.js"></script>
+  <!-- Small custom styles to refine the minimal aesthetic -->
+  <style>
+    :root{
+      --accent: #10b981;
+      --muted: #6b7280;
+      --card-bg: #ffffff;
+      --surface: #f8fafc;
+    }
+    html,body,#app { height: 100%; }
+    body { background: var(--surface); color: #0f172a; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+    /* sidebar */
+    .sidebar { width: 280px; background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(250,250,250,0.85)); backdrop-filter: blur(6px); border-right: 1px solid #e6edf3; }
+    .logo { font-weight: 700; letter-spacing: -0.01em; color: var(--accent); }
+    .workspace-btn.active { background: linear-gradient(90deg, rgba(16,185,129,0.08), rgba(79,70,229,0.03)); border-left: 3px solid var(--accent); }
+    /* subtle scrollbar */
+    .no-scrollbar::-webkit-scrollbar { width: 8px; height:8px; }
+    .no-scrollbar::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.08); border-radius: 6px; }
+    /* content */
+    .page { background: transparent; }
+    .card { background: var(--card-bg); border: 1px solid #eef2f7; border-radius: 12px; box-shadow: 0 6px 16px rgba(15,23,42,0.04); }
+    /* tabs */
+    .tab-button.active { border-bottom: 2px solid var(--accent); color: var(--accent); }
+    /* small helpers */
+    .muted { color: var(--muted); font-size: .95rem; }
+    .pill { padding: .25rem .5rem; border-radius: 9999px; font-size: .75rem; background: rgba(15,23,42,0.04); }
+    /* responsive */
+    @media (max-width: 900px) {
+      .sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 40; transform: translateX(-110%); transition: transform .22s; }
+      .sidebar.open { transform: translateX(0); }
+      .content-overlay{ position: fixed; inset: 0; background: rgba(7,12,20,0.3); z-index: 30; }
+    }
+  </style>
+</head>
+<body>
 
-    <!-- FullCalendar -->
-    <script src="./assets/js/index.global.min.js"></script>
+<div id="app" class="flex h-screen">
 
-    <!-- Responsive (tu archivo) -->
-   <script src="./assets/js/responsive.js"></script>
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="sidebar p-5 flex flex-col space-y-4 h-full">
+    <!-- top -->
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 bg-gradient-to-br from-indigo-600 to-green-400 rounded-lg flex items-center justify-center text-white text-lg">N</div>
+        <div>
+          <div class="logo text-lg">Notion HR</div>
+          <div class="text-xs muted">Workspace</div>
+        </div>
+      </div>
+
+      <button id="sidebar-toggle" class="hidden md:inline-flex items-center justify-center w-8 h-8 rounded border text-sm muted">
+        ✕
+      </button>
+    </div>
+
+    <!-- user -->
+    <button id="user-profile" class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
+      <div class="w-10 h-10 rounded bg-gray-100 flex items-center justify-center text-xl">🧑‍💻</div>
+      <div class="text-left">
+        <div id="user-name-display" class="font-medium">Usuario local</div>
+        <div id="user-branch-display" class="text-xs muted">Sucursal</div>
+      </div>
+    </button>
+
+    <!-- workspaces -->
+    <div class="flex-1 overflow-auto no-scrollbar">
+      <div class="text-xs muted uppercase tracking-wide mb-2">Espacios</div>
+
+      <div id="workspace-list" class="space-y-1">
+        <!-- workspace buttons injected dynamically -->
+        <!-- ejemplo:
+        <button class="workspace-btn w-full text-left p-2 rounded-lg">Mi Espacio</button>
+        -->
+      </div>
+
+      <div class="mt-4">
+        <button id="add-workspace" class="w-full py-2 px-3 card text-sm font-medium">+ Nuevo espacio</button>
+      </div>
+
+      <hr class="my-4 border-t">
+
+      <div id="injected-views-container" class="space-y-1">
+        <!-- menuInject.js inyectará las vistas aquí -->
+      </div>
+    </div>
+
+    <!-- footer -->
+    <div class="text-xs muted">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <img src="./assets/icons/icon-32.png" alt="icon" class="w-6 h-6">
+          <span>v1.0</span>
+        </div>
+        <button id="btn-export-gist" class="pill">Backup</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="flex-1 page p-6 overflow-auto">
+    <div class="max-w-7xl mx-auto">
+
+      <!-- Top controls (minimal): search + actions (moved inside main, not top nav) -->
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <button id="open-sidebar" class="md:hidden p-2 rounded-lg border">☰</button>
+          <h1 id="current-workspace-title" class="text-2xl font-semibold">Cargando...</h1>
+          <span class="pill" id="workspace-badge">Principal</span>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <input id="global-search" class="border rounded-lg p-2 text-sm w-64" placeholder="Buscar en workspace...">
+          <button id="btn-new-item" class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-green-500 text-white rounded-lg shadow">+ Nuevo</button>
+        </div>
+      </div>
+
+      <!-- Views Tabs -->
+      <div id="view-tabs" class="flex items-center gap-2 mb-4">
+        <!-- renderTabs() llenará esto -->
+      </div>
+
+      <!-- Content -->
+      <section id="content-view" class="min-h-[70vh]">
+        <!-- renderContent() pintará aquí -->
+        <div class="card p-8">
+          <h2 class="text-xl font-semibold">Bienvenido a Notion HR</h2>
+          <p class="muted mt-2">Selecciona un espacio o crea uno nuevo para empezar.</p>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- OPTIONAL: small overlay for mobile when sidebar opens -->
+<div id="content-overlay" class="hidden"></div>
+
+<!-- SCRIPTS: coloca tus módulos EXACTAMENTE en este orden -->
+<!-- 1) Dexie (si sigues usándolo) -->
+<script src="./assets/js/dexie.min.js"></script>
+
+<!-- 2) Propiedades y reglas -->
 <script src="./assets/js/properties.js"></script>
 <script src="./assets/js/rules.js"></script>
+
+<!-- 3) Tu script principal (si lo mantienes separado) -->
 <script src="./assets/js/views.js"></script>
+
+<!-- 4) Vistas y módulos nuevos (agenda, kanban, menu inject, zoom) -->
 <script src="./assets/js/agendaView.js"></script>
 <script src="./assets/js/kanbanNative.js"></script>
 <script src="./assets/js/menuInject.js"></script>
 <script src="./assets/js/zoom.js"></script>
 
-    <style>
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background-color: #f3f4f6; 
+<!-- 5) (Opcional) db sqlite adapter - si migras -->
+<!-- <script src="./assets/js/db-sqlite.js"></script> -->
+
+<!-- SERVICE WORKER registration (al final) -->
+<script>
+  // Sidebar mobile toggle
+  (function(){
+    const open = document.getElementById('open-sidebar');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('content-overlay');
+    const closeBtn = document.getElementById('sidebar-toggle');
+
+    function showSidebar(){
+      sidebar.classList.add('open');
+      overlay.classList.remove('hidden');
+      overlay.classList.add('content-overlay');
+      overlay.style.zIndex = 30;
+    }
+    function hideSidebar(){
+      sidebar.classList.remove('open');
+      overlay.classList.add('hidden');
+    }
+
+    open?.addEventListener('click', showSidebar);
+    closeBtn?.addEventListener('click', hideSidebar);
+    overlay?.addEventListener('click', hideSidebar);
+
+    // basic interactive placeholders to show state
+    document.getElementById('add-workspace')?.addEventListener('click', () => {
+      if(typeof addWorkspace === 'function') addWorkspace();
+    });
+
+    document.getElementById('btn-new-item')?.addEventListener('click', () => {
+      if(typeof showItemModal === 'function') showItemModal();
+    });
+
+    // user profile button
+    document.getElementById('user-profile')?.addEventListener('click', ()=> {
+      if(typeof showUserModal === 'function') showUserModal();
+    });
+
+    // global search (simple)
+    document.getElementById('global-search')?.addEventListener('input', (e)=>{
+      const q = e.target.value.toLowerCase();
+      if(typeof state !== 'undefined' && Array.isArray(state.currentRecords)){
+        // quick client-side filtering and highlight (if you want index)
+        const found = state.currentRecords.filter(r => (r.title||'').toLowerCase().includes(q) || JSON.stringify(r.properties||{}).toLowerCase().includes(q));
+        // simple rendering: if current view is table, re-render; else open panel with results
+        if(state.currentView === 'tabla' && typeof renderTable === 'function'){
+          // temporarily replace currentRecords for rendering
+          const backup = state.currentRecords;
+          state.currentRecords = found;
+          renderTable();
+          state.currentRecords = backup;
         }
-
-        .tab-button.active { 
-            border-color: #4f46e5; 
-            color: #4f46e5; 
-            background-color: #f5f3ff; 
-        }
-
-        .kanban-column { 
-            min-width: 300px; 
-            max-height: 75vh; 
-            overflow-y: auto; 
-            scrollbar-width: none; 
-        }
-        .kanban-column::-webkit-scrollbar { display: none; }
-
-        .drag-hover { 
-            border: 2px dashed #4f46e5; 
-            background-color: #eef2ff; 
-        }
-
-        .kanban-card { cursor: grab; }
-        .kanban-card:active { cursor: grabbing; }
-
-        .editable-cell { 
-            cursor: pointer; 
-            padding: 4px 8px; 
-            border-radius: 4px; 
-            transition: background-color 0.15s; 
-        }
-        .editable-cell:hover { background-color: #f1f5f9; }
-
-        .editable-cell input, 
-        .editable-cell select {
-            border: none;
-            padding: 0;
-            width: 100%;
-            background: transparent;
-            font-size: inherit;
-            color: #1f2937;
-        }
-    </style>
-</head>
-
-<body class="min-h-screen flex">
-
-    <!-- Botón menú móvil -->
-    <button id="menu-toggle" class="md:hidden fixed top-4 left-4 z-50 p-2 bg-indigo-600 text-white rounded-lg">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                  d="M4 6h16M4 12h16M4 18h16"/>
-        </svg>
-    </button>
-
-    <!-- SIDEBAR -->
-    <aside id="sidebar" 
-        class="w-64 bg-white shadow-xl flex-shrink-0 border-r border-gray-200 p-4 space-y-4
-               transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out
-               fixed md:static z-40 h-screen md:h-auto">
-
-        <h1 class="text-2xl font-bold text-indigo-700">MY APP LUIS</h1>
-
-        <!-- Perfil Usuario -->
-        <div id="user-profile-summary"
-             class="bg-gray-50 p-3 rounded-lg flex items-center space-x-3 cursor-pointer hover:bg-gray-100"
-             onclick="showUserModal()">
-
-            <span id="user-avatar" class="text-3xl">🧑‍💻</span>
-
-            <div>
-                <p id="user-name-display" class="font-semibold text-gray-800">Cargando...</p>
-                <p id="user-branch-display" class="text-xs text-gray-500">Configurar perfil</p>
-            </div>
-
-        </div>
-
-        <!-- Menú principal -->
-        <div class="space-y-1">
-            <button onclick="setActiveWorkspace(1)" 
-                class="w-full text-left p-2 rounded-lg hover:bg-gray-100 text-gray-800 font-medium">
-                <span class="mr-2">🏠</span> Dashboard
-            </button>
-
-            <button onclick="showModal('config-modal')"
-                class="w-full text-left p-2 rounded-lg hover:bg-gray-100 text-gray-800 font-medium">
-                <span class="mr-2">⚙️</span> Sincronización
-            </button>
-        </div>
-
-        <hr class="border-gray-200">
-
-        <h2 class="text-xs font-semibold uppercase text-gray-500 tracking-wider">Bases de Datos</h2>
-        <div id="workspace-list" class="space-y-1"></div>
-
-        <button onclick="addWorkspace()"
-            class="w-full text-center py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-sm font-medium">
-            + Nuevo Espacio
-        </button>
-
-    </aside>
-
-    <!-- MAIN CONTENT -->
-    <main class="flex-grow overflow-auto p-4 md:p-8 md:ml-0 transition-all duration-200">
-        <header class="mb-6">
-            <div class="flex justify-between items-center">
-
-                <h2 id="current-workspace-title" 
-                    class="text-4xl font-extrabold text-gray-900">Cargando...</h2>
-
-                <div class="flex space-x-3">
-                    <button id="btn-configure-ws"
-                        onclick="showWorkspaceConfigModal()"
-                        class="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg shadow-md hover:bg-gray-300 transition-colors hidden">
-                        Configurar Propiedades
-                    </button>
-
-                    <button id="btn-sync" onclick="exportToGist()" 
-                        class="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg shadow-md hover:bg-gray-300 transition-colors flex items-center space-x-2">
-                        <span class="w-2 h-2 rounded-full bg-red-500" id="sync-indicator"></span>
-                        <span id="sync-text">Desconectado Gist</span>
-                    </button>
-
-                    <button id="btn-new-item" onclick="showItemModal()"
-                        class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-colors">
-                        + Nuevo Elemento
-                    </button>
-                </div>
-
-            </div>
-
-            <!-- Tabs -->
-            <div id="view-tabs" 
-                class="mt-4 flex space-x-2 p-1 bg-white rounded-xl shadow-inner max-w-fit"></div>
-        </header>
-
-        <section id="content-view" 
-            class="bg-white p-6 rounded-xl shadow-lg min-h-[70vh]">
-            <p class="text-center text-gray-500">Cargando datos...</p>
-        </section>
-
-        <div id="app-message" 
-             class="fixed bottom-4 right-4 p-3 rounded-lg shadow-xl text-sm hidden"></div>
-    </main>
-
-    <!-- MODAL CREAR / EDITAR ELEMENTO -->
-    <div id="item-modal"
-         class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center p-4 z-50">
-
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl p-6 overflow-y-auto max-h-[90vh]">
-
-            <h3 id="item-modal-title"
-                class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Nuevo Elemento</h3>
-
-            <form id="record-form" class="space-y-4">
-
-                <input type="hidden" id="record-id">
-                <input type="hidden" id="record-workspaceId">
-
-                <div id="dynamic-properties-container" 
-                    class="grid grid-cols-1 md:grid-cols-3 gap-4 border p-4 rounded-lg bg-gray-50"></div>
-
-                <div>
-                    <span class="text-gray-700 font-medium block mb-2">Bloque de Contenido</span>
-                    <textarea id="record-content-block" rows="8"
-                        placeholder="Contenido detallado..."
-                        class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-indigo-500 focus:ring-indigo-500 text-sm"></textarea>
-                </div>
-
-                <div class="mt-6 flex justify-end space-x-3">
-                    <button type="button" 
-                        onclick="deleteRecord(document.getElementById('record-id').value)"
-                        id="btn-delete-record"
-                        class="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 hidden">
-                        Eliminar
-                    </button>
-
-                    <button type="button" onclick="closeModal('item-modal')" 
-                        class="px-4 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400">
-                        Cancelar
-                    </button>
-
-                    <button type="submit"
-                        class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700">
-                        Guardar Elemento
-                    </button>
-                </div>
-
-            </form>
-        </div>
-    </div>
-<!-- MODAL CONFIG DE WORKSPACE -->
-    <div id="workspace-config-modal"
-         class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center p-4 z-50">
-
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl p-6 overflow-y-auto max-h-[90vh]">
-
-            <h3 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">
-                Configurar Propiedades del Espacio
-            </h3>
-
-            <form id="workspace-config-form" class="space-y-4">
-                <input type="hidden" id="config-workspace-id">
-
-                <div class="space-y-2">
-                    <label for="config-workspace-name"
-                           class="block text-sm font-medium text-gray-700">
-                        Nombre del Espacio
-                    </label>
-
-                    <input type="text" id="config-workspace-name"
-                           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 
-                                  focus:border-indigo-500 focus:ring-indigo-500">
-                </div>
-
-                <div class="mt-4">
-                    <h4 class="text-lg font-semibold text-gray-800 mb-3">
-                        Propiedades (Columnas)
-                    </h4>
-
-                    <div id="properties-list"
-                         class="space-y-3 p-3 border rounded-lg bg-gray-50"></div>
-
-                    <button type="button" onclick="addPropertyField()"
-                        class="mt-3 px-4 py-2 bg-green-500 text-white font-semibold rounded-lg 
-                               hover:bg-green-600 text-sm">
-                        + Agregar Propiedad
-                    </button>
-                </div>
-
-                <div class="mt-6 flex justify-end space-x-3">
-                    <button type="button" onclick="closeModal('workspace-config-modal')"
-                        class="px-4 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400">
-                        Cancelar
-                    </button>
-
-                    <button type="submit"
-                        class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md 
-                               hover:bg-indigo-700">
-                        Guardar Configuración
-                    </button>
-                </div>
-            </form>
-
-        </div>
-    </div>
-
-    <!-- MODAL PERFIL USUARIO -->
-    <div id="user-modal"
-         class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center p-4 z-50">
-
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
-
-            <h3 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Mi Perfil</h3>
-
-            <div class="space-y-3 text-sm">
-                <p class="text-gray-600">
-                    El ID de usuario es local para Dexie. No es relevante para Gist,
-                    pero se conserva para mantener la estructura local.
-                </p>
-
-                <div class="bg-indigo-50 p-3 rounded-lg break-words">
-                    <strong class="text-indigo-700">ID de Usuario Local:</strong>
-                    <span id="auth-user-id">Generado Localmente</span>
-                </div>
-
-                <div class="space-y-2 pt-2">
-
-                    <label for="user-input-name"
-                           class="block text-sm font-medium text-gray-700">
-                        Nombre Visible
-                    </label>
-
-                    <input type="text" id="user-input-name" placeholder="Tu Nombre"
-                           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2
-                                  focus:border-indigo-500 focus:ring-indigo-500">
-
-                    <label for="user-input-branch"
-                           class="block text-sm font-medium text-gray-700">
-                        Sucursal/Área
-                    </label>
-
-                    <input type="text" id="user-input-branch" placeholder="Recursos Humanos"
-                           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2
-                                  focus:border-indigo-500 focus:ring-indigo-500">
-
-                </div>
-            </div>
-
-            <div class="mt-6 flex justify-end space-x-3">
-                
-                <button type="button" onclick="closeModal('user-modal')"
-                        class="px-4 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400">
-                    Cerrar
-                </button>
-
-                <button type="button" onclick="saveUserProfile()"
-                        class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md 
-                               hover:bg-indigo-700">
-                    Guardar Perfil
-                </button>
-
-            </div>
-
-        </div>
-    </div>
-
-    <!-- MODAL CONFIGURACIÓN / SINCRONIZACIÓN GIST -->
-    <div id="config-modal"
-        class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center p-4 z-50">
-
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
-
-            <h3 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">
-                Configuración y Sincronización Gist
-            </h3>
-
-            <div class="space-y-4">
-
-                <p class="text-gray-600">
-                    Usa GitHub Gist para exportar/importar la base de datos completa.<br>
-                    Necesitas un Token Personal (permiso Gist).
-                </p>
-
-                <div class="space-y-2">
-                    <label for="github-token"
-                           class="block text-sm font-medium text-gray-700">
-                        Token Personal de GitHub
-                    </label>
-
-                    <input type="password" id="github-token" placeholder="ghp_..."
-                           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3  
-                                  focus:border-indigo-500 focus:ring-indigo-500">
-                </div>
-
-                <div class="space-y-2">
-                    <label for="gist-id"
-                           class="block text-sm font-medium text-gray-700">
-                        ID del Gist
-                    </label>
-
-                    <input type="text" id="gist-id" placeholder="ID del Gist"
-                           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 
-                                  focus:border-indigo-500 focus:ring-indigo-500">
-                </div>
-
-            </div>
-
-            <div class="mt-6 flex justify-between space-x-3">
-
-                <button type="button" onclick="saveSyncConfig()"
-                        class="px-4 py-2 bg-gray-400 text-white font-semibold rounded-lg shadow-md hover:bg-gray-500">
-                    Guardar Configuración
-                </button>
-
-                <button type="button" onclick="importFromGist()"
-                        class="px-4 py-2 bg-indigo-500 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-600">
-                    Importar de Gist
-                </button>
-
-                <button type="button" onclick="closeModal('config-modal')"
-                        class="px-4 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400">
-                    Cerrar
-                </button>
-
-            </div>
-
-        </div>
-    </div>
-
-    <!-- Inicia código JS completo -->
-    <script type="module">
-
-        /* ========================
-           CONFIGURACIÓN GLOBAL
-           ======================== */
-
-        const userId = 'local-user-' + 
-            (localStorage.getItem('localUserId') || crypto.randomUUID());
-        
-        localStorage.setItem('localUserId', userId);
-
-        const state = {
-            currentWorkspaceId: null,
-            workspaces: [],
-            currentRecords: [],
-            currentView: 'panel',
-            userProfile: { 
-                name: 'Usuario Local', 
-                branch: 'Configurar', 
-                avatar: '🧑‍💻', 
-                id: userId 
-            },
-            gistConfig: { token: '', gistId: '' }
-        };
-
-        /* ========================
-           BASE DE DATOS DEXIE
-           ======================== */
-
-        const dbLocal = new Dexie('NotionHRDB');
-        
-        dbLocal.version(1).stores({
-            workspaces: '++id, name',
-            records: '++id, workspaceId, title, properties',
-            config: '&key'
-        });
-/* ========================
-            INICIALIZACIÓN
-        ======================== */
-
-        async function initApp() {
-            await loadConfig();
-            await loadUserProfile();
-            await loadWorkspaces();
-
-            if (state.workspaces.length > 0) {
-                state.currentWorkspaceId = state.workspaces[0].id;
-                setActiveWorkspace(state.currentWorkspaceId);
-            } else {
-                addWorkspace();
-            }
-        }
-
-        /* ========================
-           CARGAR CONFIGURACIONES
-           ======================== */
-
-        async function loadConfig() {
-            const config = await dbLocal.config.get({ key: 'gistConfig' });
-            if (config) state.gistConfig = config.value;
-        }
-
-        async function saveSyncConfig() {
-            const token = document.getElementById('github-token').value.trim();
-            const gistId = document.getElementById('gist-id').value.trim();
-
-            state.gistConfig = { token, gistId };
-
-            await dbLocal.config.put({
-                key: 'gistConfig',
-                value: state.gistConfig
-            });
-
-            showMessage("Configuración guardada correctamente", "success");
-        }
-
-        /* ========================
-           PERFIL DE USUARIO
-           ======================== */
-
-        async function loadUserProfile() {
-            const saved = await dbLocal.config.get({ key: 'userProfile' });
-            if (saved) state.userProfile = saved.value;
-
-            document.getElementById('user-name-display').textContent = state.userProfile.name;
-            document.getElementById('user-branch-display').textContent = state.userProfile.branch;
-            document.getElementById('user-avatar').textContent = state.userProfile.avatar;
-            document.getElementById('auth-user-id').textContent = state.userProfile.id;
-        }
-
-        async function saveUserProfile() {
-            const name = document.getElementById('user-input-name').value.trim();
-            const branch = document.getElementById('user-input-branch').value.trim();
-
-            state.userProfile.name = name || state.userProfile.name;
-            state.userProfile.branch = branch || state.userProfile.branch;
-
-            await dbLocal.config.put({
-                key: 'userProfile',
-                value: state.userProfile
-            });
-
-            loadUserProfile();
-            closeModal('user-modal');
-            showMessage("Perfil actualizado", "success");
-        }
-
-        function showUserModal() {
-            document.getElementById('user-input-name').value = state.userProfile.name;
-            document.getElementById('user-input-branch').value = state.userProfile.branch;
-            openModal('user-modal');
-        }
-
-        /* ========================
-           WORKSPACES
-        ======================== */
-
-        async function loadWorkspaces() {
-            state.workspaces = await dbLocal.workspaces.toArray();
-            renderWorkspaceList();
-        }
-
-        async function addWorkspace() {
-            const newWs = {
-                name: "Nuevo Espacio",
-                properties: [
-                    { name: 'Título', type: 'text' },
-                    { name: 'Fecha', type: 'date' },
-                    { name: 'Estado', type: 'select', options: ['Pendiente','En Proceso','Terminado'] }
-                ]
-            };
-
-            const id = await dbLocal.workspaces.add(newWs);
-            state.workspaces.push({ id, ...newWs });
-
-            renderWorkspaceList();
-            setActiveWorkspace(id);
-        }
-
-        function renderWorkspaceList() {
-            const list = document.getElementById('workspace-list');
-            list.innerHTML = "";
-
-            state.workspaces.forEach(ws => {
-                const btn = document.createElement('button');
-                btn.className = "w-full text-left p-2 rounded-lg hover:bg-gray-100 text-gray-800";
-                btn.textContent = ws.name;
-                btn.onclick = () => setActiveWorkspace(ws.id);
-
-                list.appendChild(btn);
-            });
-        }
-
-        async function setActiveWorkspace(id) {
-            state.currentWorkspaceId = id;
-
-            const workspace = state.workspaces.find(w => w.id === id);
-            document.getElementById('current-workspace-title').textContent = workspace.name;
-
-            document.getElementById('btn-configure-ws').classList.remove("hidden");
-
-            await loadRecords(id);
-            renderTabs();
-            renderContent();
-        }
-
-        /* ========================
-           REGISTROS
-        ======================== */
-
-        async function loadRecords(workspaceId) {
-            state.currentRecords = await dbLocal.records
-                .where("workspaceId")
-                .equals(workspaceId)
-                .toArray();
-        }
-
-        function showItemModal(record = null) {
-            const modal = document.getElementById('item-modal');
-            const titleEl = document.getElementById('item-modal-title');
-            const deleteBtn = document.getElementById('btn-delete-record');
-
-            if (record) {
-                titleEl.textContent = "Editar Elemento";
-                deleteBtn.classList.remove("hidden");
-                fillRecordForm(record);
-            } else {
-                titleEl.textContent = "Nuevo Elemento";
-                deleteBtn.classList.add("hidden");
-                clearRecordForm();
-            }
-
-            openModal('item-modal');
-        }
-
-        function fillRecordForm(record) {
-            document.getElementById('record-id').value = record.id;
-            document.getElementById('record-workspaceId').value = record.workspaceId;
-
-            const ws = state.workspaces.find(w => w.id === record.workspaceId);
-            const container = document.getElementById('dynamic-properties-container');
-            container.innerHTML = "";
-
-            ws.properties.forEach(prop => {
-                const value = record.properties[prop.name] || "";
-
-                const field = document.createElement('div');
-                field.innerHTML = `
-                    <label class="block text-xs font-semibold text-gray-700">${prop.name}</label>
-                    ${generateInputForProperty(prop, value)}
-                `;
-
-                container.appendChild(field);
-            });
-
-            document.getElementById('record-content-block').value = record.content || "";
-        }
-
-        function clearRecordForm() {
-            document.getElementById('record-id').value = "";
-            document.getElementById('record-workspaceId').value = state.currentWorkspaceId;
-            document.getElementById('dynamic-properties-container').innerHTML = "";
-            document.getElementById('record-content-block').value = "";
-
-            const ws = state.workspaces.find(w => w.id === state.currentWorkspaceId);
-            ws.properties.forEach(prop => {
-                const container = document.getElementById('dynamic-properties-container');
-                const div = document.createElement('div');
-
-                div.innerHTML = `
-                    <label class="block text-xs font-semibold text-gray-700">${prop.name}</label>
-                    ${generateInputForProperty(prop)}
-                `;
-
-                container.appendChild(div);
-            });
-        }
-
-        function generateInputForProperty(prop, value = "") {
-            switch (prop.type) {
-                case 'text':
-                    return `<input type="text" class="block w-full rounded-lg border-gray-300 shadow-sm p-2" 
-                                 data-prop="${prop.name}" value="${value}">`;
-                case 'number':
-                    return `<input type="number" class="block w-full rounded-lg border-gray-300 shadow-sm p-2" 
-                                 data-prop="${prop.name}" value="${value}">`;
-                case 'date':
-                    return `<input type="date" class="block w-full rounded-lg border-gray-300 shadow-sm p-2" 
-                                 data-prop="${prop.name}" value="${value}">`;
-                case 'select':
-                    return `
-                        <select class="block w-full rounded-lg border-gray-300 shadow-sm p-2" 
-                                data-prop="${prop.name}">
-                            ${prop.options.map(op => 
-                                `<option value="${op}" ${op === value ? 'selected' : ''}>${op}</option>`
-                            ).join('')}
-                        </select>
-                    `;
-                default:
-                    return "";
-            }
-        }
-
-        /* Guardar registro */
-        document.getElementById('record-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const id = document.getElementById('record-id').value;
-            const workspaceId = Number(document.getElementById('record-workspaceId').value);
-
-            const ws = state.workspaces.find(w => w.id === workspaceId);
-            const props = {};
-
-            document.querySelectorAll('[data-prop]').forEach(input => {
-                props[input.dataset.prop] = input.value;
-            });
-
-            const recordData = {
-                workspaceId,
-                title: props['Título'] || "Sin Título",
-                properties: props,
-                content: document.getElementById('record-content-block').value
-            };
-
-            if (id) {
-                await dbLocal.records.update(Number(id), recordData);
-            } else {
-                await dbLocal.records.add(recordData);
-            }
-
-            await loadRecords(workspaceId);
-            renderContent();
-            closeModal('item-modal');
-            showMessage("Elemento guardado correctamente", "success");
-        });
-/* ========================
-           ELIMINAR REGISTRO
-        ======================== */
-
-        async function deleteRecord(id) {
-            if (!confirm("¿Eliminar este elemento?")) return;
-
-            await dbLocal.records.delete(Number(id));
-            await loadRecords(state.currentWorkspaceId);
-
-            renderContent();
-            closeModal('item-modal');
-            showMessage("Elemento eliminado", "success");
-        }
-
-        /* ========================
-           TABS / VISTAS
-        ======================== */
-
-        function renderTabs() {
-            const container = document.getElementById('view-tabs');
-            container.innerHTML = "";
-
-            const tabs = [
-                { id: 'panel', label: 'Panel' },
-                { id: 'tabla', label: 'Tabla' },
-                { id: 'agenda', label: 'Agenda' },
-                { id: 'kanban', label: 'Kanban' }
-            ];
-
-            tabs.forEach(t => {
-                const btn = document.createElement('button');
-                btn.textContent = t.label;
-                btn.dataset.view = t.id;
-
-                btn.className =
-                    "px-4 py-2 rounded-lg text-sm font-semibold transition-colors tab-button " +
-                    (state.currentView === t.id
-                        ? "active"
-                        : "hover:bg-gray-100 text-gray-600");
-
-                btn.onclick = () => {
-                    state.currentView = t.id;
-                    renderTabs();
-                    renderContent();
-                };
-
-                container.appendChild(btn);
-            });
-        }
-
-        /* ========================
-           RENDERIZAR VISTAS
-        ======================== */
-
-        function renderContent() {
-            switch (state.currentView) {
-                case "panel":
-                    renderPanel();
-                    break;
-                case "tabla":
-                    renderTable();
-                    break;
-                case "agenda":
-                    renderAgenda();
-                    break;
-                case "kanban":
-                    renderKanban();
-                    break;
-            }
-        }
-
-        /* PANEL */
-        function renderPanel() {
-            const container = document.getElementById('content-view');
-
-            container.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-                    <div class="p-6 bg-indigo-50 rounded-xl shadow">
-                        <p class="text-6xl font-extrabold text-indigo-600">${state.currentRecords.length}</p>
-                        <p class="text-gray-600 font-semibold">TOTAL REGISTROS</p>
-                    </div>
-
-                    <div class="p-6 bg-green-50 rounded-xl shadow">
-                        <p class="text-6xl font-extrabold text-green-600">
-                            ${state.currentRecords.filter(r => r.properties.Estado === "Terminado").length}
-                        </p>
-                        <p class="text-gray-600 font-semibold">TERMINADOS</p>
-                    </div>
-
-                    <div class="p-6 bg-yellow-50 rounded-xl shadow">
-                        <p class="text-6xl font-extrabold text-yellow-600">
-                            ${state.currentRecords.filter(r => r.properties.Estado === "Pendiente").length}
-                        </p>
-                        <p class="text-gray-600 font-semibold">PENDIENTES</p>
-                    </div>
-
-                </div>
-            `;
-        }
-
-        /* TABLA */
-        function renderTable() {
-            const container = document.getElementById('content-view');
-            const ws = state.workspaces.find(w => w.id === state.currentWorkspaceId);
-
-            let html = `
-                <table class="min-w-full text-sm border-collapse">
-                    <thead>
-                        <tr class="border-b bg-gray-50">
-                            ${ws.properties.map(p =>
-                                `<th class="p-2 text-left font-semibold text-gray-700">${p.name}</th>`
-                            ).join("")}
-                            <th class="p-2"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-
-            state.currentRecords.forEach(r => {
-                html += `
-                    <tr class="border-b hover:bg-gray-50">
-                        ${ws.properties.map(p =>
-                            `<td class="p-2 editable-cell" onclick="showItemModal(${r.id})">
-                                ${r.properties[p.name] || ""}
-                            </td>`
-                        ).join("")}
-                        <td class="p-2 text-right">
-                            <button onclick="showItemModal(${r.id})"
-                                class="text-indigo-600 hover:text-indigo-800">Editar</button>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            html += "</tbody></table>";
-            container.innerHTML = html;
-        }
-
-        /* AGENDA */
-        function renderAgenda() {
-            const container = document.getElementById('content-view');
-            container.innerHTML = `<div id="calendar"></div>`;
-
-            const events = state.currentRecords.map(r => ({
-                title: r.title,
-                start: r.properties["Fecha"],
-                backgroundColor: "#6366f1"   /* ← corregido (antes tenía ##) */
-            }));
-
-            const calendar = new FullCalendar.Calendar(
-                document.getElementById('calendar'),
-                {
-                    initialView: "dayGridMonth",
-                    selectable: true,
-                    events
-                }
-            );
-
-            calendar.render();
-        }
-
-        /* KANBAN */
-        function renderKanban() {
-            const container = document.getElementById('content-view');
-
-            const statuses = ["Pendiente", "En Proceso", "Terminado"];
-
-            let html = `
-                <div class="flex space-x-4 overflow-x-auto pb-4">
-            `;
-
-            statuses.forEach(status => {
-                html += `
-                    <div class="kanban-column bg-gray-50 rounded-xl p-3 shadow"
-                         data-status="${status}">
-                        <h3 class="font-bold text-gray-700 mb-2">${status}</h3>
-                        <div class="kanban-list space-y-3" data-list="${status}">
-                            ${state.currentRecords
-                                .filter(r => r.properties.Estado === status)
-                                .map(r => `
-                                    <div class="kanban-card bg-white p-3 rounded-lg shadow cursor-pointer"
-                                         draggable="true"
-                                         data-id="${r.id}"
-                                         onclick="showItemModal(${r.id})">
-                                        <p class="font-semibold">${r.title}</p>
-                                        <p class="text-xs text-gray-500">${r.properties.Fecha || ""}</p>
-                                    </div>
-                                `)
-                                .join("")}
-                        </div>
-                    </div>
-                `;
-            });
-
-            html += "</div>";
-            container.innerHTML = html;
-
-            initKanbanDrag();
-        }
-
-        function initKanbanDrag() {
-            const cards = document.querySelectorAll(".kanban-card");
-            const lists = document.querySelectorAll(".kanban-list");
-
-            let dragged = null;
-
-            cards.forEach(card => {
-                card.addEventListener("dragstart", () => {
-                    dragged = card;
-                    setTimeout(() => card.classList.add("opacity-50"), 0);
-                });
-
-                card.addEventListener("dragend", () => {
-                    card.classList.remove("opacity-50");
-                    dragged = null;
-                });
-            });
-
-            lists.forEach(list => {
-                list.addEventListener("dragover", e => e.preventDefault());
-
-                list.addEventListener("drop", async () => {
-                    if (!dragged) return;
-
-                    const id = Number(dragged.dataset.id);
-
-                    await dbLocal.records.update(id, {
-                        properties: {
-                            ...state.currentRecords.find(r => r.id === id).properties,
-                            Estado: list.dataset.list
-                        }
-                    });
-
-                    await loadRecords(state.currentWorkspaceId);
-                    renderKanban();
-                });
-            });
-        }
-
-        /* ========================
-           MODALES
-        ======================== */
-
-        function openModal(id) {
-            document.getElementById(id).classList.remove("hidden");
-            document.getElementById(id).classList.add("flex");
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.add("hidden");
-            document.getElementById(id).classList.remove("flex");
-        }
-
-        /* ========================
-           MENSAJES
-        ======================== */
-
-        function showMessage(text, type = "success") {
-            const box = document.getElementById('app-message');
-            box.textContent = text;
-
-            box.className =
-                `fixed bottom-4 right-4 p-3 rounded-lg shadow-xl text-sm 
-                 ${type === "error" ? "bg-red-500 text-white" : "bg-green-500 text-white"}`;
-
-            box.classList.remove("hidden");
-
-            setTimeout(() => box.classList.add("hidden"), 2500);
-        }
-<
-        /* ========================
-           SERVICE WORKER
-        ======================== */
-
-        if ("serviceWorker" in navigator) {
-            navigator.serviceWorker.register("./sw.js")
-                .catch(console.error);
-        }
-
-        /* ========================
-           INICIO DE LA APP
-        ======================== */
-
-        initApp();
-
-    </script>
+      }
+    });
+
+    // export gist button
+    document.getElementById('btn-export-gist')?.addEventListener('click', ()=> {
+      if(typeof exportToGist === 'function') exportToGist();
+      else alert('Función de export a gist no configurada');
+    });
+
+  })();
+
+  // register SW if available
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(console.error);
+  }
+</script>
 
 </body>
 </html>
