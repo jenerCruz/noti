@@ -1,8 +1,8 @@
 {
-"name": "Notion HR PWA",
-"short_name": "Notion HR",
-"description": "Herramienta de gestión de recursos humanos inspirada en Notion, con funcionalidad offline.",
-"start_url": "./index.html",
+"name":"Notion HR PWA",
+"short_name":"Notion HR",
+"description":"Herramienta de gestión de recursos humanos inspirada en Notion, con funcionalidad offline.",
+"start_url":"./index.html",
 "display": "standalone",
 "background_color": "#f0f4f8",
 "theme_color": "#10b981",
