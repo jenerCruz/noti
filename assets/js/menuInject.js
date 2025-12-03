@@ -1,21 +1,13 @@
 /*
  menuInject.js
  Inyecta botones en la barra lateral y en las tabs para todas las vistas nuevas.
- - Evita duplicados
- - Si ya existe la vista en renderTabs, no duplica
- - Conecta Agenda semanal, Panel+, Galería (ya definidas), Kanban nativo
- - También crea un mini menú de configuración para 'color by' por vista
 */
 
 (function(){
 
+  // Función auxiliar para asegurar que el DOM está listo, aunque no se usa directamente en este script.
   function ensureSidebar(){
-    // intenta detectar tu sidebar; en tu index lo llamaste 'sidebar'
-    const sidebar = document.getElementById("sidebar");
-    if(!sidebar) return null;
-
-    // sección de vistas -> si existe view-tabs también añade
-    return sidebar;
+    return document.getElementById("sidebar");
   }
 
   function createButton(text, onclick, className = "w-full text-left p-2 rounded-lg hover:bg-gray-100 text-gray-800 font-medium mb-1"){
@@ -27,17 +19,19 @@
   }
 
   function injectButtons(){
-    const sb = ensureSidebar();
-    if(!sb) return;
-
-    // avoid duplicate container
-    if(document.getElementById("injected-views-container")) {
+    // 1. En lugar de crear un contenedor, buscamos el placeholder existente en el HTML.
+    const cont = document.getElementById("injected-views-container");
+    
+    if(!cont) {
+      console.error("❌ Placeholder '#injected-views-container' no encontrado. No se inyectarán vistas.");
       return;
     }
 
-    const cont = document.createElement("div");
-    cont.id = "injected-views-container";
-    cont.className = "mt-4 p-2 border-t";
+    // 2. Limpiamos o verificamos que no haya contenido para evitar duplicados.
+    // Usamos un simple chequeo de contenido para prevenir doble inyección.
+    if(cont.children.length > 0) return;
+
+    // --- Inyección de botones directa al contenedor (cont) ---
 
     // Agenda semanal
     cont.appendChild(createButton("Agenda semanal", ()=> {
@@ -73,11 +67,8 @@
     cfg.className = "mt-3";
     cfg.appendChild(createButton("Configurar colores por vista", openColorConfig, "w-full text-left p-2 rounded-lg bg-indigo-50 text-indigo-700 font-medium"));
     cont.appendChild(cfg);
-
-    // append to sidebar (before the + nuevo espacio)
-    const insertBefore = sb.querySelector("button:nth-last-child(1)") || null;
-    if(insertBefore) sb.insertBefore(cont, insertBefore);
-    else sb.appendChild(cont);
+    
+    console.log("✅ Vistas de extensión inyectadas en el menú lateral.");
   }
 
   function openColorConfig(){
