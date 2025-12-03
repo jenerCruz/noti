@@ -9,7 +9,6 @@
     <link rel="manifest" href="./manifest.json">
 
     <script src="./assets/js/sql-wasm-browser.min.js"></script>
-<script src="./assets/js/sql-wasm.wasm"></script>
 
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -86,7 +85,7 @@
 <div id="app-message" class="fixed bottom-4 right-4 p-3 rounded-lg shadow-xl text-sm z-50 hidden"></div>
 
 
-
+<script src="./assets/js/sql-wasm-browser.min.js"></script>
 <script src="./assets/js/db-sqlite.js"></script>
 
 <script src="./assets/js/properties.js"></script>
@@ -103,10 +102,9 @@
 
 
 <script>
-    // Solo se llama al inicio de la app y el registro del Service Worker.
-    if (typeof initApp === 'function') {
-        initApp(); 
-    }
+    if(typeof initApp==='fuction'){
+          initApp();
+}
 
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(console.error);
