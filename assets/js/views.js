@@ -1,8 +1,3 @@
-/*
-  views.js - Lógica principal de la aplicación
-  Orquesta la inicialización de la DB, el estado, la UI y los módulos (responsive, menú).
-*/
-
 // ===========================================
 // 1. ESTADO GLOBAL DE LA APLICACIÓN
 // ===========================================
@@ -13,28 +8,27 @@ window.state = {
     currentRecords: [],
 };
 
-
 // ===========================================
 // 2. FUNCIÓN PRINCIPAL (PUNTO DE INICIO)
 // ===========================================
 async function initApp() {
     console.log("App: Iniciando aplicación...");
 
-    // 1. Inicializar SQLite
+    // Inicializar Dexie
     if (typeof dbLocal === 'undefined') {
-        console.error("❌ Error: db-sqlite.js no está cargado.");
+        console.error("❌ Error: dbLocal (Dexie) no está cargado.");
         return;
     }
 
     const dbReady = await dbLocal.init();
     if (!dbReady) return;
 
-    // 2. Inicializar Responsivo
+    // Inicializar Responsivo
     if (typeof initResponsiveLayout === "function") {
         initResponsiveLayout();
     }
 
-    // 3. Cargar datos iniciales
+    // Cargar datos iniciales
     state.workspaces = await dbLocal.getWorkspaces();
     state.currentWorkspaceId = state.workspaces[0]?.id || null;
 
@@ -42,10 +36,10 @@ async function initApp() {
         state.currentRecords = await dbLocal.getRecords(state.currentWorkspaceId);
     }
 
-    // 4. Renderizado inicial
+    // Renderizado inicial
     refreshViews();
 
-    // 5. Inyección del menú
+    // Inyección del menú
     if (window.MenuInject && typeof window.MenuInject.injectButtons === "function") {
         window.MenuInject.injectButtons();
     }
@@ -56,8 +50,6 @@ async function initApp() {
     console.log("✅ App: Carga inicial completada.");
 }
 
-
-
 // ===========================================
 // 3. RENDER GENERAL
 // ===========================================
@@ -67,8 +59,6 @@ function refreshViews() {
     renderTabs();
     renderContent();
 }
-
-
 
 // ===========================================
 // 4. RENDER SIDEBAR
@@ -86,14 +76,12 @@ function renderSidebarWorkspaces() {
 
         div.innerHTML = `
             <span>${ws.name}</span>
-            <button onclick="setActiveWorkspace(${ws.id})">Abrir</button>
+            <button onclick="setActiveWorkspace('${ws.id}')">Abrir</button>
         `;
 
         container.appendChild(div);
     });
 }
-
-
 
 // ===========================================
 // 5. RENDER TABS
@@ -107,15 +95,12 @@ function renderTabs() {
                 onclick="state.currentView='table'; refreshViews();">
             Tabla
         </button>
-
         <button class="${state.currentView === "cards" ? "active" : ""}"
                 onclick="state.currentView='cards'; refreshViews();">
             Tarjetas
         </button>
     `;
 }
-
-
 
 // ===========================================
 // 6. RENDER CONTENIDO PRINCIPAL
@@ -131,11 +116,14 @@ function renderContent() {
 
     if (state.currentView === "table") {
         container.innerHTML = renderTableView(state.currentRecords);
+    } else if (state.currentView === "agendaCustom") {
+        window.renderAgendaWeek && window.renderAgendaWeek();
+    } else if (state.currentView === "kanbanNative") {
+        window.renderKanban && window.renderKanban();
     } else {
         container.innerHTML = renderCardsView(state.currentRecords);
     }
 }
-
 
 // ------ Render Tabla ------
 function renderTableView(records) {
@@ -143,15 +131,15 @@ function renderTableView(records) {
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>ID</th><th>Texto</th><th>Fecha</th>
+                    <th>ID</th><th>Título</th><th>Fecha</th>
                 </tr>
             </thead>
             <tbody>
                 ${records.map(r => `
                     <tr>
                         <td>${r.id}</td>
-                        <td>${r.text}</td>
-                        <td>${r.created_at}</td>
+                        <td>${r.title || r.text || "(sin título)"}</td>
+                        <td>${r.properties?.Fecha || r.created_at || ""}</td>
                     </tr>
                 `).join("")}
             </tbody>
@@ -159,22 +147,19 @@ function renderTableView(records) {
     `;
 }
 
-
 // ------ Render Cards ------
 function renderCardsView(records) {
     return `
         <div class="cards">
             ${records.map(r => `
                 <div class="card">
-                    <p>${r.text}</p>
-                    <span>${r.created_at}</span>
+                    <p>${r.title || r.text || "(sin título)"}</p>
+                    <span>${r.properties?.Fecha || r.created_at || ""}</span>
                 </div>
             `).join("")}
         </div>
     `;
 }
-
-
 
 // ===========================================
 // 7. CAMBIAR WORKSPACE
@@ -185,8 +170,6 @@ async function setActiveWorkspace(id) {
     refreshViews();
 }
 
-
-
 // ===========================================
 // 8. MODAL PARA AGREGAR ITEMS
 // ===========================================
@@ -194,8 +177,6 @@ function showItemModal() {
     const modal = document.getElementById("itemModal");
     if (modal) modal.style.display = "block";
 }
-
-
 
 // ===========================================
 // 9. AGREGAR NUEVA ENTRADA
@@ -206,14 +187,11 @@ async function addWorkspace() {
 
     const id = await dbLocal.createWorkspace(nameInput.value.trim());
     state.workspaces = await dbLocal.getWorkspaces();
-
     state.currentWorkspaceId = id;
     state.currentRecords = [];
 
     refreshViews();
 }
-
-
 
 // ===========================================
 // 10. EXPORTAR A GIST
@@ -228,8 +206,6 @@ async function exportToGist() {
     alert("Exportado a Gist correctamente");
 }
 
-
-
 // ===========================================
 // 11. EXPOSICIÓN GLOBAL
 // ===========================================
@@ -239,5 +215,3 @@ window.setActiveWorkspace = setActiveWorkspace;
 window.showItemModal = showItemModal;
 window.addWorkspace = addWorkspace;
 window.exportToGist = exportToGist;
-
-console.log("views.js cargado completamente.");
